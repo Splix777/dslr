@@ -18,7 +18,7 @@ def house_colors(house: str) -> str:
         "Gryffindor": "red",
         "Hufflepuff": "yellow",
     }
-    return colors.get(house, "black")
+    return colors.get(house)
 
 
 def courses_list(df: pd.DataFrame) -> list:
@@ -31,7 +31,12 @@ def courses_list(df: pd.DataFrame) -> list:
     Returns:
         list: List of course names.
     """
-    return df.columns[6:].tolist()
+    # Get numerical features
+    return (
+        df.select_dtypes(include=["float64", "int64"])
+        .drop("Index", axis=1)
+        .columns.tolist()
+    )
 
 
 def plot_course_distributions(df: pd.DataFrame) -> None:
