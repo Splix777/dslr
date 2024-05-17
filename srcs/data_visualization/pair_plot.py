@@ -1,8 +1,6 @@
 import itertools
 
-import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -244,7 +242,6 @@ if __name__ == "__main__":
     csv_path = "/home/splix/Desktop/dslr/csv_files/"
     csv_file = "dataset_train.csv"
     dataset = read_csv_file(csv_path + csv_file)
-    # create_pair_plot_seaborn(dataset)
-    # create_scatter_plot_matrix_pandas(dataset)
-
+    create_pair_plot_seaborn(dataset)
+    create_scatter_plot_matrix_pandas(dataset)
     custom_pair_plot(dataset)
