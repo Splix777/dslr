@@ -185,3 +185,106 @@ These values indicate that the scores for "Care of Magical Creatures" are simila
   </p>
 </details>
 
+
+---
+
+## V.2.2 Scatter Plot
+
+Professor Snape has assigned you the task of creating a program called `scatter_plot.py`. This program takes a dataset as input and displays a scatter plot for two numerical features, resembling the following example:
+
+![Scatter Plot Example](images/scatter_eg.png)
+
+## Understanding Scatter Plots
+
+Scatter plots are graphical representations of the relationship between two numerical variables. They display individual data points as dots on a two-dimensional plane, with one variable on the x-axis and the other on the y-axis. Scatter plots are useful for visualizing patterns, trends, and correlations between variables.
+
+### X-Axis (Horizontal Axis)
+
+The x-axis of a scatter plot represents one numerical variable or feature from the dataset. Each data point's x-coordinate corresponds to the value of this variable for that data point.
+
+### Y-Axis (Vertical Axis)
+
+The y-axis of a scatter plot represents another numerical variable or feature from the dataset. Each data point's y-coordinate corresponds to the value of this variable for that data point.
+
+### Example:
+
+Consider a scatter plot of students' exam scores in two different subjects. The x-axis could represent the scores in Subject A, while the y-axis represents the scores in Subject B. Each data point on the scatter plot would correspond to a student's scores in both subjects.
+
+#### Interpretation:
+
+- If the data points form a clear pattern or trend (e.g., a line), it indicates a relationship between the two variables.
+- If the data points are scattered randomly, it suggests no apparent relationship between the variables.
+- If the data points form a curve or cluster, it may indicate a non-linear relationship between the variables.
+- If the data points show a positive slope, it suggests a positive correlation between the variables.
+- If the data points show a negative slope, it suggests a negative correlation between the variables.
+- If the data points are evenly distributed, it suggests no correlation between the variables.
+- If the data points form a cluster or group, it may indicate subgroups within the data.
+
+In the context of the provided scatter plots:
+
+- **X-Axis:** Represents one numerical feature from the dataset.
+- **Y-Axis:** Represents another numerical feature from the dataset.
+
+This visualization allows us to observe the relationship between two numerical features, identifying patterns, trends, or correlations between them.
+
+---
+
+## Scatter Plot Analysis
+
+Professor Snape has requested a program called `scatter_plot.py` to visualize the relationship between two numerical features in the dataset. This script utilizes the Pandas and Matplotlib libraries to accomplish this task.
+
+### Script Functionality
+
+#### `find_similar_features` Function:
+
+- **Objective:** Find two numerical features with similar distributions for a scatter plot given a correlation threshold.
+- **How It Works:**
+  1. Selects numerical features from the dataset.
+  2. Using .corr() method, calculates the correlation between all numerical features.
+  3. Using list comprehension, filters out features with a correlation greater than the threshold.
+
+#### `plot_scatter_plots` Function:
+
+- **Objective:** Plot scatter plots for pairs of numerical features with similar distributions.
+- **How It Works:**
+  1. Iterates over pairs of numerical features with similar distributions.
+  2. Plots a scatter plot for each pair with a unique color.
+  3. Adds a title, labels, and legend to each plot.
+  4. Displays the plots using Matplotlib.
+
+### **Which pair of features has the most similar distribution?**
+
+### ELI5
+- We're looking for two features that have a similar distribution of values. This means that the data points in the scatter plot are closely clustered together, indicating a strong relationship between the features.
+- In simpler terms, we're searching for two features where the data points form a clear pattern or trend, suggesting a correlation between them.
+
+<details>
+<summary><strong>Click to reveal the answer</strong></summary>
+
+### Methodology
+
+To identify the pair of features with the most similar distribution, we analyzed the scatter plots for each pair of features with a correlation greater than the threshold. We visually inspected the scatter plots to determine which pair exhibited the most similar distribution of values.
+Additionally, we have a function `print_correlation_percentages` that prints the correlation percentages for each pair of features. It allows us to more accurately identify the pair with the most similar distribution.
+
+### Result Analysis
+
+From the provided scatter plots, the pair of features "Astronomy" and "Defense Against the Dark Arts" exhibits the most similar distribution. The scatter plot for these features shows a clear linear relationship, with data points forming a distinct pattern or trend. This pattern suggests a strong correlation between the "Astronomy" and "Defense Against the Dark Arts" scores, indicating that students who perform well in one subject tend to perform well in the other.
+
+- **Pairs of similar features with correlation coefficient >= 0.70:**
+- **Astronomy and Defense Against the Dark Arts:** 100.00%
+- **Herbology and Charms: 74.66%**
+- **Muggle Studies and Charms: 84.76%**
+- **History of Magic and Transfiguration: 84.92%**
+- **History of Magic and Flying: 89.63%**
+- **Transfiguration and Flying: 87.37%**
+
+These results suggest that the pair "Astronomy" and "Defense Against the Dark Arts" has the most similar distribution, with a correlation coefficient of 100.00%.
+
+### Plot Analysis
+
+  <p align="center">
+    <img src="images/plots/scatter_plot_analysis.png" alt="Scatter Plot Analysis" width="75%">
+  </p>
+
+</details>
+
