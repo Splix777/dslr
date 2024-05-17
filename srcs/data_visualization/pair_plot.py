@@ -1,4 +1,8 @@
+import itertools
+
+import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -126,9 +130,121 @@ def create_scatter_plot_matrix_pandas(df: pd.DataFrame) -> None:
     plt.show()
 
 
+def pair_plot_hist(
+    ax: plt.Axes, x: pd.Series, house_labels: pd.Series
+) -> None:
+    """
+    Plot histograms for each segment of the data.
+
+    Args:
+        ax (plt.Axes): Axes object for plotting.
+        x (pd.Series): Data to plot histograms for.
+        house_labels (pd.Series): Labels indicating the house for each data point.
+
+    Returns:
+        None
+    """
+    colors = {
+        "Gryffindor": "red",
+        "Hufflepuff": "yellow",
+        "Ravenclaw": "blue",
+        "Slytherin": "green",
+    }
+    for house, color in colors.items():
+        mask = house_labels == house
+        ax.hist(x[mask].dropna().values, alpha=0.5, color=color, label=house)
+
+
+def pair_plot_scatter(
+    ax: plt.Axes, x: pd.Series, y: pd.Series, house_labels: pd.Series
+) -> None:
+    """
+    Plot scatter plots for each segment of the data.
+
+    Args:
+        ax (plt.Axes): Axes object for plotting.
+        x (pd.Series): Data for x-axis.
+        y (pd.Series): Data for y-axis.
+        house_labels (pd.Series): Labels indicating the house for each data point.
+
+    Returns:
+        None
+    """
+    colors = {
+        "Gryffindor": "red",
+        "Hufflepuff": "yellow",
+        "Ravenclaw": "blue",
+        "Slytherin": "green",
+    }
+    for house, color in colors.items():
+        mask = house_labels == house
+        ax.scatter(x[mask], y[mask], s=10, color=color, alpha=0.5, label=house)
+
+
+def custom_pair_plot(df: pd.DataFrame) -> None:
+    """
+    Create a pair plot of the dataset with custom features.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the dataset.
+
+    Returns:
+        None
+    """
+    legend = ["Gryffindor", "Hufflepuff", "Ravenclaw", "Slytherin"]
+    house_labels = df["Hogwarts House"]
+    numeric_df = (
+        df.select_dtypes(include=["float64", "int64"])
+        .drop("Index", axis=1)
+        .dropna()
+    )
+    features = numeric_df.columns
+    size = numeric_df.shape[1]
+
+    fig, ax = plt.subplots(nrows=size, ncols=size, figsize=(30, 30))
+    plt.subplots_adjust(wspace=0.15, hspace=0.15)
+
+    for row, col in itertools.product(range(size), range(size)):
+        x = numeric_df.iloc[:, col]
+        y = numeric_df.iloc[:, row]
+
+        if col == row:
+            # pair_plot_hist(ax[row, col], x)
+            pair_plot_hist(ax[row, col], x, house_labels)
+        else:
+            pair_plot_scatter(ax[row, col], x, y, house_labels)
+
+        if col == 0:
+            ax[row, col].set_ylabel(
+                features[row].replace(" ", "\n"),
+            )
+        else:
+            ax[row, col].tick_params(labelleft=False)
+
+        if row == size - 1:
+            ax[row, col].set_xlabel(features[col].replace(" ", "\n"))
+        else:
+            ax[row, col].tick_params(labelbottom=False)
+
+        ax[row, col].spines["right"].set_visible(False)
+        ax[row, col].spines["top"].set_visible(False)
+
+    plt.legend(
+        legend,
+        loc="center left",
+        frameon=False,
+        bbox_to_anchor=(1, 0.5),
+        fontsize=12,
+    )
+    plt.suptitle("Pair Plot of Hogwarts Houses", fontsize=20)
+    plt.show()
+
+
 if __name__ == "__main__":
     csv_path = "/home/splix/Desktop/dslr/csv_files/"
     csv_file = "dataset_train.csv"
     dataset = read_csv_file(csv_path + csv_file)
-    create_pair_plot_seaborn(dataset)
-    create_scatter_plot_matrix_pandas(dataset)
+    # create_pair_plot_seaborn(dataset)
+    # create_scatter_plot_matrix_pandas(dataset)
+
+    custom_pair_plot(dataset)
