@@ -1,6 +1,7 @@
 import statistics
-import numpy as np
 from typing import List, Optional
+
+import numpy as np
 
 
 class StatisticsClass:
@@ -59,7 +60,9 @@ class StatisticsClass:
             return None
         mean = self.mean
         try:
-            return np.sqrt(sum((x - mean) ** 2 for x in self.data) / (len(self.data) - 1))
+            return np.sqrt(
+                sum((x - mean) ** 2 for x in self.data) / (len(self.data) - 1)
+            )
         except (ZeroDivisionError, TypeError):
             return None
 
@@ -92,11 +95,11 @@ class StatisticsClass:
             index = 0.25 * (len(sorted_data) - 1)
             if index.is_integer():
                 return sorted_data[int(index)]
-            else:
-                lower_index = int(index)
-                upper_index = lower_index + 1
-                return (1 - (index - lower_index)) * sorted_data[lower_index] + (index - lower_index) * sorted_data[
-                    upper_index]
+            lower_index = int(index)
+            upper_index = lower_index + 1
+            return (1 - (index - lower_index)) * sorted_data[lower_index] + (
+                index - lower_index
+            ) * sorted_data[upper_index]
         except (ZeroDivisionError, TypeError):
             return None
 
@@ -114,11 +117,11 @@ class StatisticsClass:
             index = 0.5 * (len(sorted_data) - 1)
             if index.is_integer():
                 return sorted_data[int(index)]
-            else:
-                lower_index = int(index)
-                upper_index = lower_index + 1
-                return (1 - (index - lower_index)) * sorted_data[lower_index] + (index - lower_index) * sorted_data[
-                    upper_index]
+            lower_index = int(index)
+            upper_index = lower_index + 1
+            return (1 - (index - lower_index)) * sorted_data[lower_index] + (
+                index - lower_index
+            ) * sorted_data[upper_index]
         except (ZeroDivisionError, TypeError):
             return None
 
@@ -136,11 +139,11 @@ class StatisticsClass:
             index = 0.75 * (len(sorted_data) - 1)
             if index.is_integer():
                 return sorted_data[int(index)]
-            else:
-                lower_index = int(index)
-                upper_index = lower_index + 1
-                return (1 - (index - lower_index)) * sorted_data[lower_index] + (index - lower_index) * sorted_data[
-                    upper_index]
+            lower_index = int(index)
+            upper_index = lower_index + 1
+            return (1 - (index - lower_index)) * sorted_data[lower_index] + (
+                index - lower_index
+            ) * sorted_data[upper_index]
         except (ZeroDivisionError, TypeError):
             return None
 
@@ -177,8 +180,11 @@ class StatisticsClass:
                 return None
 
             n = len(self.data)
-            skewness = sum(((x - mean) / std) ** 3 for x in self.data) * n / ((n - 1) * (n - 2))
-            return skewness
+            return (
+                sum(((x - mean) / std) ** 3 for x in self.data)
+                * n
+                / ((n - 1) * (n - 2))
+            )
         except (ZeroDivisionError, TypeError):
             return None
 
@@ -191,7 +197,16 @@ if __name__ == "__main__":
     print(f"Mean: {stats.mean} == {statistics.mean(example_list)}")
     print(f"Std: {stats.std} == {statistics.stdev(example_list)}")
     print(f"Min: {stats.min_value} == {min(example_list)}")
-    print(f"25th percentile: {stats.percentile_25} == {np.percentile(example_list, 25)}")
-    print(f"50th percentile: {stats.percentile_50} == {np.percentile(example_list, 50)}")
-    print(f"75th percentile: {stats.percentile_75} == {np.percentile(example_list, 75)}")
+    print(
+        f"25th percentile: "
+        f"{stats.percentile_25} == {np.percentile(example_list, 25)}"
+    )
+    print(
+        f"50th percentile: "
+        f"{stats.percentile_50} == {np.percentile(example_list, 50)}"
+    )
+    print(
+        f"75th percentile: "
+        f"{stats.percentile_75} == {np.percentile(example_list, 75)}"
+    )
     print(f"Max: {stats.max_value} == {max(example_list)}")

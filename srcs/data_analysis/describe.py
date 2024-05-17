@@ -1,4 +1,5 @@
 import pandas as pd
+
 from statistics_class import StatisticsClass
 
 
@@ -46,7 +47,9 @@ def describe_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    dataframe = pd.read_csv("/home/splix/Desktop/dslr/csv_files/dataset_train.csv")
+    dataframe = pd.read_csv(
+        "/home/splix/Desktop/dslr/csv_files/dataset_train.csv"
+    )
     print(dataframe.describe())
 
     # Save the output to a CSV file
