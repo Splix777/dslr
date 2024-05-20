@@ -1,4 +1,5 @@
-import pickle
+import os
+import json
 
 
 class LinearRegressionPredictor:
@@ -15,23 +16,20 @@ class LinearRegressionPredictor:
         """
         try:
             with open(self.model_path, 'rb') as f:
-                data = pickle.load(f)
+                data = json.load(f)
         except FileNotFoundError as e:
             raise FileNotFoundError(f"{self.model_path} not found") from e
 
         self.theta = data["theta"]
-        self.mean_km = data["mean_km"]
-        self.std_km = data["std_km"]
 
-    def predict(self, km: int) -> float:
+    def predict(self, km: float) -> float:
         """
         Predict the price of a car given its kilometers.
         """
         if not isinstance(km, int) or km < 0 or km > 1_000_000:
             raise ValueError("Please enter a number between 0 and 1_000_000")
-        price = (self.theta[0] * (km - self.mean_km)
-                 / self.std_km + self.theta[1])
-        return round(price, 2)
+        results = float(self.theta[0]) + float(self.theta[1]) * km
+        return round(results, 2)
 
 
 def get_user_input() -> int:
@@ -53,6 +51,14 @@ def get_user_input() -> int:
         km = int(input("Cars Kilometers: "))
         if km < 0 or km > 1_000_000:
             raise ValueError("Please enter a number between 0 and 1_000_000")
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        pickle_path = os.path.join(base_dir, "json_files/model.json")
+        predictor = LinearRegressionPredictor(pickle_path)
+        price = predictor.predict(km)
+        if price < 0:
+            print(f"Price for a car with {km} km is: $0 ({price})")
+        else:
+            print(f"Price for a car with {km} km is: ${price}")
     except ValueError as e:
         raise ValueError("Please enter a valid number") from e
 
@@ -60,9 +66,4 @@ def get_user_input() -> int:
 
 
 if __name__ == "__main__":
-    pickle_dir = '/home/splix/Desktop/ft_linear_regression/pickle_files/'
-    pickle_model = 'model.pkl'
-    predictor = LinearRegressionPredictor(pickle_dir + pickle_model)
-
-    car_km = get_user_input()
-    print(f"Price for a car with {car_km} km is: ${predictor.predict(car_km)}")
+    get_user_input()

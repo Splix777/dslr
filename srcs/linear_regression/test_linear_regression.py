@@ -1,9 +1,15 @@
+import json
+import os
 import unittest
 import warnings
+
 import numpy as np
+import pandas as pd
 from sklearn.linear_model import LinearRegression
-from train_model_class import DataAnalysisClass
-from linear_regression_predictor import LinearRegressionPredictor
+from srcs.linear_regression.train_model_class import LinearRegressionModel
+from srcs.linear_regression.linear_regression_predictor import (
+    LinearRegressionPredictor,
+)
 
 warnings.filterwarnings(action="ignore", category=DeprecationWarning)
 
@@ -12,28 +18,34 @@ class TestLinearRegression(unittest.TestCase):
     """
     A class for testing the linear regression model and predictor.
     """
+
     def setUp(self) -> None:
         """
         Set up test data and objects.
         """
-        self.data_path = '/home/splix/Desktop/ft_linear_regression/csv_files/'
-        self.data_csv = 'data.csv'
-        self.pkl_pth = '/home/splix/Desktop/ft_linear_regression/pickle_files/'
-        self.pickle_model = 'model.pkl'
-        self.bonus = False
-        self.learning_rate = 0.1
-        self.iterations = 100
-        self.data_analysis = DataAnalysisClass(
-            data_dir=self.data_path,
-            csv_file=self.data_csv,
-            pickle_path=self.pkl_pth,
-            pickle_model=self.pickle_model,
-            bonus=self.bonus,
-            learning_rate=self.learning_rate,
-            iterations=self.iterations
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.json = os.path.join(base_dir, "json_files/model.json")
+        self.data_path = os.path.join(base_dir, "csv_files/data.csv")
+        data = pd.read_csv(self.data_path)
+        self.x_feature = "km"
+        self.y_feature = "price"
+        self.km = data[self.x_feature].values
+        self.price = data[self.y_feature].values
+
+        if not os.path.exists(self.json):
+            self.data_analysis = LinearRegressionModel()
+            self.data_analysis.load_data(
+                self.data_path, self.x_feature, self.y_feature
+            )
+            self.data_analysis.fit()
+            self.data_analysis.save_model(self.json)
+
+        self.predictor = LinearRegressionPredictor(self.json)
+        self.sklearn_model = LinearRegression().fit(
+            np.array(self.km).reshape(-1, 1),
+            np.array(self.price).reshape(-1, 1),
         )
-        self.predictor = LinearRegressionPredictor(
-            self.pkl_pth + self.pickle_model)
+
         self.km_list = list(range(0, 1_000_000, 10_000))
 
     def test_custom_model(self) -> None:
@@ -43,15 +55,14 @@ class TestLinearRegression(unittest.TestCase):
         for km in self.km_list:
             with self.subTest(km=km):
                 custom_model = self.predictor.predict(km)
-
-                reg = LinearRegression().fit(
-                    np.array(self.data_analysis.km).reshape(-1, 1),
-                    np.array(self.data_analysis.price).reshape(-1, 1))
-                sklearn_model = reg.predict(np.array([[km]]))[0][0]
+                sklearn_model = self.sklearn_model.predict(
+                    np.array([[km]])
+                ).flatten()[0]
                 np.testing.assert_almost_equal(
-                    custom_model,
-                    sklearn_model,
-                    decimal=1)
+                    custom_model, sklearn_model, decimal=1
+                )
+
+        print("My model and sklearn model are equal within 1 decimal place.")
 
     def test_error_handling(self) -> None:
         """
@@ -62,7 +73,7 @@ class TestLinearRegression(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.predictor.predict(1_000_001)
         with self.assertRaises(ValueError):
-            self.predictor.predict('a')
+            self.predictor.predict("a")
 
     def tearDown(self) -> None:
         """
@@ -71,5 +82,5 @@ class TestLinearRegression(unittest.TestCase):
         pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
