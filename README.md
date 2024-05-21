@@ -409,6 +409,10 @@ Based on the pair plot matrix, we would consider using Astronomy, Defense Agains
     <img src="images/sorting_hat.webp" width="15%">
 </p>
 
+<p align="center">
+    <img src="outputs/logistic_regression/reg_plot.png">
+</p>
+
 ## V.3 Logistic Regression
 
 You arrive at the last part: code your Magic Hat. To do this, you have to perform a multi-classifier using a logistic regression one-vs-all.
