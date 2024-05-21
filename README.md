@@ -1,8 +1,8 @@
 <h1 align="center">dslr</h1>
 
 
-<div style="text-align:center;">
-    <img src="images/harry-potter-4077473_1280.png" alt="Harry Potter" width="25%">
+<div align="center">
+<img src="images/harry-potter-4077473_1280.png" alt="Harry Potter" width="25%">
 </div>
 
 
@@ -39,7 +39,9 @@ This project introduces you to new tools in your exploration of Machine Learning
 
 Professor McGonagall has assigned you the task of creating a program called `describe.py`. This program takes a dataset as input and displays information for all numerical features, resembling the following example:
 
-![Data Analysis Example](images/data_analysis_eg.png)
+<p align="center">
+<img src="images/data_analysis_eg.png" alt="Pair Plot Example" width="">
+</p>
 
 ---
 
@@ -104,7 +106,9 @@ Professor Flitwick has asked you to create a program called `histogram.py`. This
 takes a dataset as input and displays a histogram for each numerical feature, resembling
 the following example:
 
-![Histogram Example](images/histogram_sample.png)
+<p align="center">
+<img src="images/histogram_sample.png" alt="Pair Plot Example" width="50%">
+</p>
 
 ## Understanding Histograms
 
@@ -192,7 +196,9 @@ These values indicate that the scores for "Care of Magical Creatures" are simila
 
 Professor Snape has assigned you the task of creating a program called `scatter_plot.py`. This program takes a dataset as input and displays a scatter plot for two numerical features, resembling the following example:
 
-![Scatter Plot Example](images/scatter_eg.png)
+<p align="center">
+<img src="images/scatter_eg.png" alt="Pair Plot Example" width="50%">
+</p>
 
 ## Understanding Scatter Plots
 
@@ -288,3 +294,10 @@ These results suggest that the pair "Astronomy" and "Defense Against the Dark Ar
 
 </details>
 
+## V.2.2 Pair Plot
+
+Professor Trelawney has assigned you the task of creating a program called `pair_plot.py`. This program takes a dataset as input and displays a pair plot for all numerical features, resembling the following example:
+
+<p align="center">
+<img src="images/plots/pair_plot.png" alt="Pair Plot Example" width="50%">
+</p>
