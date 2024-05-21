@@ -33,6 +33,21 @@ This project introduces you to new tools in your exploration of Machine Learning
 
 ---
 
+## Table of Contents
+
+1. [Mandatory Part](#mandatory-part)
+   - [V.1 Data Analysis](#v1-data-analysis)
+   - [V.2 Data Visualization](#v2-data-visualization)
+     - [V.2.1 Histogram](#v21-histogram)
+     - [V.2.2 Scatter Plot](#v22-scatter-plot)
+     - [V.2.3 Pair Plot](#v23-pair-plot)
+   - [V.3 Logistic Regression](#v3-logistic-regression)
+     - [Part 1: Training the Model](#script-functionality-part-1-training)
+
+
+
+---
+
 # Mandatory Part
 
 ## V.1 Data Analysis
@@ -296,7 +311,7 @@ These results suggest that the pair "Astronomy" and "Defense Against the Dark Ar
 
 </details>
 
-## V.2.2 Pair Plot
+## V.2.3 Pair Plot
 
 Professor Trelawney has assigned you the task of creating a program called `pair_plot.py`. This program takes a dataset as input and displays a pair plot for all numerical features, resembling the following example:
 
