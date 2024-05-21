@@ -166,7 +166,7 @@ class LogisticRegressionPredictor:
         return 1 / (1 + np.exp(-linear_output))
 
     def evaluate_model(
-        self, true_labels: np.ndarray, predicted_labels: np.ndarray
+        self, true_labels: np.ndarray, predicted_labels: np.ndarray, output_file: str
     ) -> None:
         """
         Evaluate the model's performance using various metrics.
@@ -191,6 +191,13 @@ class LogisticRegressionPredictor:
         logging.info(f"F1 Score: {f1}")
         logging.info(f"Confusion Matrix:\n{conf_matrix}")
 
+        with open(output_file, "w") as f:
+            f.write(f"Accuracy: {accuracy}\n")
+            f.write(f"Precision: {precision}\n")
+            f.write(f"Recall: {recall}\n")
+            f.write(f"F1 Score: {f1}\n")
+            f.write(f"Confusion Matrix:\n{conf_matrix}")
+
 
 def get_project_base_path() -> str:
     """Get the base path of the project."""
@@ -200,8 +207,8 @@ def get_project_base_path() -> str:
 
 
 if __name__ == "__main__":
-    if os.path.exists("prediction.log"):
-        os.remove("prediction.log")
+    if os.path.exists("logs/prediction.log"):
+        os.remove("logs/prediction.log")
 
     logging.basicConfig(
         filename="logs/prediction.log",
@@ -229,4 +236,5 @@ if __name__ == "__main__":
     true_csv = pd.read_csv(true_csv_file)
     true_labels = true_csv["Hogwarts House"].values
 
-    predictor.evaluate_model(true_labels, np.array(predicted_labels))
+    evaluation_file = os.path.join(logreg_dir, "evaluation.txt")
+    predictor.evaluate_model(true_labels, np.array(predicted_labels), evaluation_file)
