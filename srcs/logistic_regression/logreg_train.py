@@ -1,33 +1,14 @@
-import numpy as np
-import pandas as pd
 import json
 import logging
 import os
+from typing import Any
 
-import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
-
-
-def load_csv(file_path: str) -> pd.DataFrame:
-    """
-    Load the dataset from a CSV file.
-
-    Parameters:
-    file_path (str): Path to the CSV file.
-
-    Returns:
-    pd.DataFrame: Loaded dataset.
-    """
-    try:
-        return pd.read_csv(file_path)
-    except FileNotFoundError as e:
-        logging.error(f"File not found: {file_path}")
-        raise e
-    except Exception as e:
-        logging.error(f"Error loading data: {str(e)}")
-        raise e
 
 
 class LogisticRegressionTrainer:
@@ -42,20 +23,32 @@ class LogisticRegressionTrainer:
 
         Parameters:
         learning_rate (float): Learning rate for gradient descent.
-        num_iterations (int): Number of iterations for training.
-        epsilon (float): Small value to avoid log(0).
+        Num_iterations (int): Number of iterations for training.
+        Epsilon (float): Small value to avoid log(0).
         """
-        self.costs = None
-        self.scaler = None
+        self.project_path = get_project_base_path()
+        self.output_dir = os.path.join(
+            self.project_path, "outputs/logistic_regression"
+        )
         self.data = None
         self.learning_rate = learning_rate
         self.num_iterations = num_iterations
+        self.scaler = None
         self.epsilon = epsilon
         self.weights = {}
-        self.file_path = None
+        self.csv_path = None
         self.features_scaled = None
-        self.houses = None
+        self.target = None
         self.features = None
+        self.costs = None
+        self.weight_history = None
+        self.bias_history = None
+        self.target_labels = None
+        logging.info(
+            f"Initialized Logistic Regression Trainer with learning rate: "
+            f"{learning_rate}, num_iterations: {num_iterations}, "
+            f"epsilon: {epsilon}"
+        )
 
     def load_data(self, file_path: str) -> None:
         """
@@ -68,8 +61,9 @@ class LogisticRegressionTrainer:
         pd.DataFrame: Loaded dataset.
         """
         try:
-            self.file_path = file_path
+            self.csv_path = file_path
             self.data = pd.read_csv(file_path)
+            logging.info(f"Data loaded from {file_path}")
         except FileNotFoundError as e:
             logging.error(f"File not found: {file_path}")
             raise e
@@ -77,24 +71,27 @@ class LogisticRegressionTrainer:
             logging.error(f"Error loading data: {str(e)}")
             raise e
 
-    def preprocess_data(self) -> None:
+    def __preprocess_data(self) -> None:
+        """
+        Preprocess the data before training the model.
+        """
         try:
-
-            self.houses = self.data["Hogwarts House"].unique()
+            # Maps the "Best Hand" column to a binary value
             self.data["Best Hand"] = (
                 self.data["Best Hand"]
                 .map({"Right": 0, "Left": 1})
                 .astype(float)
             )
+            # Select only the float columns as features
             self.features = self.data.select_dtypes(
                 include=["float64"]
             ).columns.tolist()
-
+            # Fill missing values with the mean of the column to avoid NaN
             self.data[self.features] = self.data[self.features].apply(
                 lambda col: col.fillna(col.mean())
             )
-
             self.scaler = StandardScaler()
+            # Scale features to have a mean of 0 and a standard deviation of 1
             self.features_scaled = self.scaler.fit_transform(
                 self.data[self.features]
             )
@@ -102,46 +99,106 @@ class LogisticRegressionTrainer:
             logging.error(f"Error preprocessing data: {str(e)}")
             raise e
 
+    def __initialize_variables(self):
+        """
+        Initialize the variables required for training the model.
+        """
+        self.target = self.data["Hogwarts House"].unique()
+        self.target_labels = self.data["Hogwarts House"].values
+        self.weight_history = {house: [] for house in self.target}
+        self.bias_history = {house: [] for house in self.target}
+        self.costs = {house: [] for house in self.target}
+        logging.info(f"Target labels: {self.target}")
+        logging.info(f"Features: {self.features}")
+
     def train_one_vs_all(self) -> None:
-        self.preprocess_data()
-        self.costs = {}
-        target_labels = self.data["Hogwarts House"].values
+        """
+        Train the logistic regression model for each house.
+        """
+        logging.info("Training one vs all logistic regression model")
+        self.__preprocess_data()
+        self.__initialize_variables()
+        self.__logistic_regression()
+        weights_json = os.path.join(self.output_dir, "weights.json")
+        self.__save_weights(weights_json)
 
-        for house in self.houses:
-            binary_target = (target_labels == house).astype(int)
-            weights = np.zeros(self.features_scaled.shape[1])
+    def __logistic_regression(self):
+        """
+        Train the logistic regression model for each house.
+        """
+        for house in self.target:
+            self.__gradient_descent(house)
+            self.weights[house] = {
+                "weights": self.weight_history[house][-1].tolist(),
+                "bias": self.bias_history[house][-1],
+            }
 
-            for iteration in range(self.num_iterations):
-                linear_output = self.calculate_linear_output(weights)
-                predictions = self.sigmoid_activation(linear_output)
-                predictions = self.ensure_valid_predictions(predictions)
-                gradient = self.calculate_gradient(
-                    predictions, binary_target, weights
+    def __gradient_descent(self, house: str) -> None:
+        """
+        Perform gradient descent to train the logistic regression model.
+
+        Parameters:
+        house (str): House to train the model for.
+        """
+        binary_labels = (self.target_labels == house).astype(int)
+        weights = np.zeros(self.features_scaled.shape[1])
+        bias = 0
+        pbar = tqdm(total=self.num_iterations)
+        pbar.set_description(f"Training {house}")
+        pbar.bar_format = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
+        logging.info(f"Training {house} logistic regression model")
+
+        for _ in range(self.num_iterations):
+            linear_output = self.__calculate_linear_output(weights, bias)
+            initial_p = self.__sigmoid_activation(linear_output)
+            validated_p = self.__ensure_valid_predictions(initial_p)
+            gradient_weights, gradient_bias = self.__calculate_gradient(
+                validated_p, binary_labels
+            )
+            weights, bias = self.__update_weights(
+                weights, bias, gradient_weights, gradient_bias
+            )
+            self.weight_history[house].append(weights.copy())
+            self.bias_history[house].append(bias)
+            self.costs[house].append(
+                self.__calculate_cost(binary_labels, validated_p)
+            )
+            pbar.update(1)
+
+            if (
+                self.costs[house]
+                and len(self.costs[house]) > 1
+                and abs(self.costs[house][-1] - self.costs[house][-2])
+                < self.epsilon
+            ):
+                logging.info(
+                    f"Converged at iteration {_ + 1} with cost: "
+                    f"{self.costs[house][-1]}"
                 )
-                if iteration % 100 == 0:
-                    cost = self.calculate_cost(binary_target, predictions)
-                    self.costs[house] = cost
-                    logging.info(
-                        f"House: {house}, Iteration: {iteration}, Cost: {cost}"
-                    )
-                weights = self.update_weights(weights, gradient)
+                break
 
-            self.weights[house] = weights.tolist()
+        logging.info(
+            f"---\n{house}\nFinal Weights: {weights}\nFinal Bias: {bias}"
+        )
+        pbar.close()
 
-    def calculate_linear_output(self, weights):
+    def __calculate_linear_output(
+        self, weights: np.ndarray, bias: float
+    ) -> np.ndarray:
         """
         Calculate the linear output of the model.
 
         Parameters:
         weights (np.ndarray): Model weights.
+        bias (float): Model bias.
 
         Returns:
         np.ndarray: Linear output.
         """
-        return np.dot(self.features_scaled, weights)
+        return np.dot(self.features_scaled, weights) + bias
 
     @staticmethod
-    def sigmoid_activation(linear_output):
+    def __sigmoid_activation(linear_output):
         """
         Apply the sigmoid activation function.
 
@@ -153,7 +210,9 @@ class LogisticRegressionTrainer:
         """
         return 1 / (1 + np.exp(-linear_output))
 
-    def ensure_valid_predictions(self, predictions: np.ndarray) -> np.ndarray:
+    def __ensure_valid_predictions(
+        self, predictions: np.ndarray
+    ) -> np.ndarray:
         """
         Ensure predictions are within valid range to prevent numerical instability.
 
@@ -165,38 +224,51 @@ class LogisticRegressionTrainer:
         """
         return np.clip(predictions, self.epsilon, 1 - self.epsilon)
 
-    def calculate_gradient(self, predictions, target, weights):
+    def __calculate_gradient(
+        self,
+        predictions: np.ndarray,
+        target: np.ndarray,
+    ) -> tuple[float | Any, Any]:
         """
         Calculate the gradient of the cost function.
 
         Parameters:
         predictions (np.ndarray): Model predictions.
-        target (np.ndarray): Target labels.
-        weights (np.ndarray): Model weights.
+        Target (np.ndarray): Target labels.
 
         Returns:
         np.ndarray: Gradient of the cost function.
         """
-        return (
-            np.dot(self.features_scaled.T, (predictions - target))
-            / target.size
-        )
+        error = predictions - target
+        gradient_weights = np.dot(self.features_scaled.T, error) / len(target)
+        gradient_bias = np.mean(error)
+        return gradient_weights, gradient_bias
 
-    def update_weights(self, weights, gradient):
+    def __update_weights(
+        self,
+        weights: np.ndarray,
+        bias: float,
+        gradient_weights: np.ndarray,
+        gradient_bias: float,
+    ) -> tuple[np.ndarray, float]:
         """
-        Update model weights using gradient descent.
+        Update the weights using gradient descent.
 
         Parameters:
-        weights (np.ndarray): Current model weights.
-        gradient (np.ndarray): Gradient of the cost function.
+        weights (np.ndarray): Model weights.
+        Bias (float): Model bias.
+        Gradient_weights (np.ndarray): Gradient of the weights.
+        Gradient_bias (float): Gradient of the bias.
 
         Returns:
-        np.ndarray: Updated model weights.
+        Tuple[np.ndarray, float]: Updated weights and bias.
         """
-        return weights - self.learning_rate * gradient
+        weights -= self.learning_rate * gradient_weights
+        bias -= self.learning_rate * gradient_bias
+        return weights, bias
 
     @staticmethod
-    def calculate_cost(target, predictions):
+    def __calculate_cost(target, predictions) -> float:
         """
         Calculate the cost function.
 
@@ -212,7 +284,7 @@ class LogisticRegressionTrainer:
             + (1 - target) * np.log(1 - predictions)
         )
 
-    def save_weights(self, file_path: str) -> None:
+    def __save_weights(self, file_path: str) -> None:
         """
         Save the weights to a JSON file.
 
@@ -220,6 +292,8 @@ class LogisticRegressionTrainer:
         file_path (str): Path to the JSON file.
         """
         try:
+            if not os.path.exists(file_path):
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, "w") as f:
                 json.dump(self.weights, f)
                 logging.info(f"Weights saved to {file_path}")
@@ -227,25 +301,26 @@ class LogisticRegressionTrainer:
             logging.error(f"Error saving weights: {str(e)}")
             raise e
 
-    def plot_s_curve(self):
-        palette = sns.color_palette("husl", len(self.houses))
+    def __reg_plot(self) -> None:
+        palette = sns.color_palette("husl", len(self.target))
         fig, axes = plt.subplots(
-            len(self.houses),
+            len(self.target),
             len(self.features),
-            figsize=((len(self.features) * 12), (len(self.houses) * 8)),
+            figsize=((len(self.features) * 12), (len(self.target) * 8)),
         )
         plt.subplots_adjust(hspace=0.5, wspace=0.5)
-        pbar = tqdm(total=len(self.houses) * len(self.features))
+        pbar = tqdm(total=len(self.target) * len(self.features))
         pbar.bar_format = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
+        pbar.set_description("Plotting regression plots")
 
-        for row, house in enumerate(self.houses):
+        for row, house in enumerate(self.target):
             self.data[house] = (self.data["Hogwarts House"] == house).astype(
                 int
             )
             logging.info(f"House: {self.data[house]}")
             for col, feature in enumerate(self.features):
                 logging.info(f"Feature: {feature}")
-                ax = axes[row, col] if len(self.houses) > 1 else axes[col]
+                ax = axes[row, col] if len(self.target) > 1 else axes[col]
                 sns.set(style="whitegrid")
                 color = palette[row]
                 sns.regplot(
@@ -271,22 +346,188 @@ class LogisticRegressionTrainer:
                 pbar.update(1)
 
         plt.tight_layout()
-        save_name = self.file_path.split(".")[0] + ".png"
+        save_name = os.path.join(self.output_dir, "reg_plot.png")
         plt.savefig(save_name)
+        pbar.close()
+
+    def __reg_plot_custom(self) -> None:
+        palette = sns.color_palette("husl", len(self.target))
+        fig, axes = plt.subplots(
+            len(self.target),
+            len(self.features),
+            figsize=((len(self.features) * 12), (len(self.target) * 8)),
+        )
+        plt.subplots_adjust(hspace=0.5, wspace=0.5)
+        pbar = tqdm(total=len(self.target) * len(self.features))
+        pbar.bar_format = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
+        pbar.set_description("Plotting regression plots")
+
+        for row, house in enumerate(self.target):
+            self.data[house] = (self.data["Hogwarts House"] == house).astype(
+                int
+            )
+            logging.info(f"House: {self.data[house]}")
+            for col, feature in enumerate(self.features):
+                logging.info(f"Feature: {feature}")
+                ax = axes[row, col] if len(self.target) > 1 else axes[col]
+                sns.set(style="whitegrid")
+                color = palette[row]
+                linear_output = np.dot(
+                    self.features_scaled, self.weights[house]["weights"]
+                )
+                predictions = self.__sigmoid_activation(linear_output)
+                logging.info(f"Predictions: {predictions}")
+                sns.regplot(
+                    x=feature,
+                    y=predictions,
+                    data=self.data,
+                    label=f"{house} vs {feature}",
+                    ax=ax,
+                    color=color,
+                    truncate=True,
+                )
+                ax.scatter(
+                    self.data[feature],
+                    self.data[house],
+                    alpha=0.5,
+                    label="Data points",
+                    color=color,
+                )
+                ax.set_xlabel(feature)
+                ax.set_ylabel(f"Probability of Belonging to {house}")
+                ax.set_title(f"Logistic Regression of {feature} on {house}")
+                ax.legend()
+                pbar.update(1)
+
+        plt.tight_layout()
+        save_name = os.path.join(self.output_dir, "reg_plot_custom.png")
+        plt.savefig(save_name)
+        pbar.close()
+
+    def __plot_cost_progress(self) -> None:
+        plt.figure(figsize=(10, 6))
+        for house in self.target:
+            plt.plot(
+                range(len(self.costs[house])),
+                self.costs[house],
+                label=f"{house} Cost",
+            )
+        plt.xlabel("Iteration")
+        plt.ylabel("Cost")
+        plt.title("Cost Function Value over Iterations")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig("cost_function.png")
         plt.show()
 
+    def __plot_heatmap(self) -> None:
+        fig, axes = plt.subplots(
+            len(self.target),
+            1,
+            figsize=(20, 40),
+        )
+        plt.subplots_adjust(hspace=0.5)
+        fig.suptitle("Weights Heatmap for Each House", fontsize=20)
 
-# Example usage
+        logging.info(f"Weight history: {self.weight_history}")
+
+        for i, house in enumerate(self.target):
+            sns.heatmap(
+                np.array(self.weight_history[house]),
+                ax=axes[i],
+                cmap="coolwarm",
+                cbar_kws={"label": "Weight Value"},
+            )
+            axes[i].set_title(f"{house} Weights Heatmap")
+            axes[i].set_ylabel("Iteration")
+            axes[i].set_xticklabels(self.features, rotation=45)
+            axes[i].grid(True)
+
+        save_name = os.path.join(self.output_dir, "weights_heatmap.png")
+        plt.savefig(save_name)
+
+    def __plot_weights_bias(self) -> None:
+        fig, axes = plt.subplots(
+            len(self.target),
+            1,
+            figsize=(20, 30),
+        )
+        plt.subplots_adjust(hspace=0.5)
+        fig.suptitle("Weights and Bias for Each House", fontsize=20)
+
+        for i, house in enumerate(self.target):
+            for j in range(len(self.features)):
+                axes[i].plot(
+                    range(len(self.weight_history[house])),
+                    np.array(self.weight_history[house])[:, j],
+                    label=f"{self.features[j]} Weight",
+                )
+            axes[i].plot(
+                range(len(self.bias_history[house])),
+                np.array(self.bias_history[house]),
+                label="Bias",
+            )
+            axes[i].set_title(f"{house} Weights and Bias")
+            axes[i].set_xlabel("Iteration")
+            axes[i].set_ylabel("Value")
+            axes[i].legend()
+            axes[i].grid(True)
+
+        save_name = os.path.join(self.output_dir, "weights_bias.png")
+        plt.savefig(save_name)
+
+    def __bar_plot_averages(self) -> None:
+        colors = sns.color_palette("husl", len(self.target))
+        fig, axes = plt.subplots(len(self.target), 1, figsize=(20, 40))
+        plt.subplots_adjust(hspace=0.5)
+        fig.suptitle("Average Weights and Bias for Each House", fontsize=20)
+
+        for i, house in enumerate(self.target):
+            axes[i].bar(
+                self.features,
+                self.weights[house]["weights"],
+                color=colors,
+                alpha=0.7,
+                edgecolor="black",
+                linewidth=1.2,
+            )
+            axes[i].bar(
+                "Bias",
+                (self.bias_history[house][-1]),
+                color="black",
+                alpha=0.7,
+                edgecolor="black",
+                linewidth=1.2,
+            )
+            axes[i].set_title(f"{house} Average Weights")
+            axes[i].grid(True)
+            axes[i].set_xlabel("Feature")
+            axes[i].set_ylabel("Weight")
+
+        save_name = os.path.join(self.output_dir, "average_weights.png")
+        plt.savefig(save_name)
+
+
+def get_project_base_path() -> str:
+    """Get the base path of the project."""
+    current_file = os.path.abspath(__file__)
+    root_path = os.path.abspath(os.path.join(current_file, "..", "..", ".."))
+    return root_path
+
+
 if __name__ == "__main__":
-    if os.path.exists("training.log"):
-        os.remove("training.log")
-    trainer = LogisticRegressionTrainer(
-        learning_rate=0.001, num_iterations=10_000, epsilon=1e-5
-    )
+    if os.path.exists("logs/training.log"):
+        os.remove("logs/training.log")
     logging.basicConfig(
-        filename="training.log", level=logging.INFO, format="%(message)s"
+        filename="logs/training.log", level=logging.INFO, format="%(message)s"
     )
-    trainer.load_data("dataset_train.csv")
+
+    trainer = LogisticRegressionTrainer(
+        learning_rate=0.01, num_iterations=2000, epsilon=1e-5
+    )
+
+    base_path = get_project_base_path()
+    dataset_path = os.path.join(base_path, "csv_files/dataset_train.csv")
+
+    trainer.load_data(dataset_path)
     trainer.train_one_vs_all()
-    trainer.save_weights("weights.json")
-    # trainer.plot_s_curve()

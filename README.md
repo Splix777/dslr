@@ -405,8 +405,8 @@ Based on the pair plot matrix, we would consider using Astronomy, Defense Agains
 
 ---
 
-<p align="center" style="background-color: #b6b8b9;">
-    <img src="images/magic_hat2.png" width="15%">
+<p align="center">
+    <img src="images/sorting_hat.webp" width="15%">
 </p>
 
 ## V.3 Logistic Regression
@@ -454,15 +454,17 @@ The idea of One-vs-All is to transform a multi-class problem into multiple binar
 #### `logreg_train.py`
 
 - **Objective:** Train a logistic regression model to predict the Hogwarts house of a student based on their scores in various courses.
+
+
 - **How It Works:**
   1. Load the training dataset from a CSV file.
   2. Split the dataset into features (course scores) and targets (Hogwarts houses).
   3. Using a scaler, normalize the features to ensure consistent scaling.
   4. Train a logistic regression model using the OvA strategy to predict the student's house.
      1. For each house (Gryffindor, Hufflepuff, Ravenclaw, Slytherin):
-        1. Create a binary target variable for the specific house (1 if the student belongs to that house, zero otherwise).
+        1. Create a binary label variable for the specific house (1 if the student belongs to that house, zero otherwise).
         2. Initialize weights and bias for the logistic regression model. (In our case, we always start with 0)
-        2. Gradient Descent (The core of the logistic regression model):
+        3. **`Gradient Descent` (The core of the logistic regression model):**
            1. Calculate Linear Output: The Formula: `z = w * x + b` (where `w` is the weight, `x` is the feature, and `b` is the bias).
            2. Apply the Sigmoid Function: The Formula: `sigmoid(z) = 1 / (1 + exp(-z))`. This function maps the linear output to a probability between 0 and 1.
            3. Ensure Valid Predictions: Clip the predicted probabilities to avoid numerical instability: `np.clip(p, epsilon, 1 - epsilon)`.
@@ -485,4 +487,19 @@ The idea of One-vs-All is to transform a multi-class problem into multiple binar
         * `{"Ravenclaw": [-0.0009868341294897878, 0.06962188652678399, -0.5579166563484348, 0.39875190335458915, 0.5628056489665395, 0.35134153700367265, 0.9846571492335171, 0.7965639194620214, 0.06198095424575081, 0.08187381240200624, 0.04589124210735973, 0.018121847976973252, 0.8481914997775947, 0.033243022124068544]}`
         * Each house has a corresponding list of weights for each feature selected.
         * The weights represent the importance of each feature in predicting the student's house.
-        * 
+
+
+
+
+## Fair Use Disclaimer
+
+This repository may contain screenshots or excerpts from copyrighted materials. These materials are used under the principles of fair use for purposes such as commentary, criticism, news reporting, teaching, scholarship, or research. Fair use is a use permitted by copyright statute that might otherwise be infringing.
+
+If you are the owner of the copyrighted material and have any concerns about its use here, please contact us so we can address the issue promptly.
+
+- The use of copyrighted material in this repository is not intended to infringe upon the rights of the copyright holder.
+- This use is non-commercial and intended for educational and informational purposes only.
+- All rights to the original materials remain with their respective copyright holders.
+
+For more information on fair use,
+you can visit the [U.S. Copyright Office](https://www.copyright.gov/fair-use/) website.

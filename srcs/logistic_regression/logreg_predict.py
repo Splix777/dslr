@@ -1,3 +1,5 @@
+from typing import List, Any
+
 import numpy as np
 import pandas as pd
 import json
@@ -23,7 +25,8 @@ class LogisticRegressionPredictor:
         self.houses = list(self.weights.keys())
         self.features = None
 
-    def load_weights(self, file_path: str):
+    @staticmethod
+    def load_weights(file_path: str):
         """
         Load the weights from a JSON file.
 
@@ -45,7 +48,8 @@ class LogisticRegressionPredictor:
             logging.error(f"Error loading weights: {str(e)}")
             raise e
 
-    def load_data(self, file_path: str) -> pd.DataFrame:
+    @staticmethod
+    def load_data(file_path: str) -> pd.DataFrame:
         """
         Load the dataset from a CSV file.
 
@@ -80,7 +84,6 @@ class LogisticRegressionPredictor:
                 include=["float64"]
             ).columns.tolist()
 
-            # Remove Howarts House from the features list
             self.features.remove("Hogwarts House")
 
             data[self.features] = data[self.features].apply(
@@ -95,7 +98,19 @@ class LogisticRegressionPredictor:
             logging.error(f"Error preprocessing data: {str(e)}")
             raise e
 
-    def predict(self, data: pd.DataFrame) -> np.ndarray:
+    def restore_modified_features(self, data: pd.DataFrame) -> None:
+        """
+        Restore the modified features in the test data.
+
+        Parameters:
+        data (pd.DataFrame): Test data.
+        """
+        data[self.features] = self.scaler.inverse_transform(
+            self.features_scaled
+        )
+        data["Best Hand"] = data["Best Hand"].map({0: "Right", 1: "Left"})
+
+    def predict(self, data: pd.DataFrame) -> list[list[Any] | Any]:
         """
         Predict the Hogwarts house for the test data.
 
@@ -105,32 +120,37 @@ class LogisticRegressionPredictor:
         Returns:
         np.ndarray: Predicted houses.
         """
+        if not isinstance(data, pd.DataFrame):
+            raise ValueError("Data must be a pandas DataFrame")
         self.preprocess_data(data)
         logging.info(f"{self.preprocess_data}")
         predictions = {}
 
         for house in self.houses:
-            weights = np.array(self.weights[house])
-            linear_output = self.calculate_linear_output(weights)
+            weights = np.array(self.weights[house]["weights"])
+            bias = self.weights[house]["bias"]
+            linear_output = self.calculate_linear_output(weights, bias)
             predictions[house] = self.sigmoid_activation(linear_output)
 
         predicted_classes = np.argmax(
             np.array(list(predictions.values())), axis=0
         )
         predicted_houses = [self.houses[idx] for idx in predicted_classes]
+        self.restore_modified_features(data)
         return predicted_houses
 
-    def calculate_linear_output(self, weights):
+    def calculate_linear_output(self, weights, bias):
         """
         Calculate the linear output of the model.
 
         Parameters:
         weights (np.ndarray): Model weights.
+        bias (float): Model bias.
 
         Returns:
         np.ndarray: Linear output.
         """
-        return np.dot(self.features_scaled, weights)
+        return np.dot(self.features_scaled, weights) + bias
 
     @staticmethod
     def sigmoid_activation(linear_output):
@@ -145,7 +165,9 @@ class LogisticRegressionPredictor:
         """
         return 1 / (1 + np.exp(-linear_output))
 
-    def evaluate_model(self, true_labels, predicted_labels):
+    def evaluate_model(
+        self, true_labels: np.ndarray, predicted_labels: np.ndarray
+    ) -> None:
         """
         Evaluate the model's performance using various metrics.
 
@@ -170,27 +192,41 @@ class LogisticRegressionPredictor:
         logging.info(f"Confusion Matrix:\n{conf_matrix}")
 
 
-# Example usage
+def get_project_base_path() -> str:
+    """Get the base path of the project."""
+    current_file = os.path.abspath(__file__)
+    root_path = os.path.abspath(os.path.join(current_file, "..", "..", ".."))
+    return root_path
+
+
 if __name__ == "__main__":
     if os.path.exists("prediction.log"):
         os.remove("prediction.log")
 
     logging.basicConfig(
-        filename="prediction.log", level=logging.INFO, format="%(message)s"
+        filename="logs/prediction.log",
+        level=logging.INFO,
+        format="%(message)s",
     )
+    base_dir = get_project_base_path()
+    logreg_dir = os.path.join(base_dir, "outputs/logistic_regression")
+    csv_dir = os.path.join(base_dir, "csv_files")
+    weights_file = os.path.join(logreg_dir, "weights.json")
+    csv_test_file = os.path.join(csv_dir, "dataset_test.csv")
 
-    predictor = LogisticRegressionPredictor(weights_file="weights.json")
-    test_data = predictor.load_data("dataset_test.csv")
+    predictor = LogisticRegressionPredictor(weights_file)
+    test_data = predictor.load_data(csv_test_file)
 
     predicted_labels = predictor.predict(test_data)
 
     # Adding the predicted labels to the test data and saving the results
     test_data["Hogwarts House"] = predicted_labels
-    test_data.to_csv("predicted_test_data.csv", index=False)
-    logging.info(f"Predicted labels saved to predicted_test_data.csv")
+    results_csv = os.path.join(logreg_dir, "dataset_truth.csv")
+    test_data.to_csv(results_csv, index=False)
 
-    true_csv = pd.read_csv("dataset_truth.csv")
+    true_csv_file = os.path.join(csv_dir, "sample_truth.csv")
+
+    true_csv = pd.read_csv(true_csv_file)
     true_labels = true_csv["Hogwarts House"].values
 
-    if true_labels is not None:
-        predictor.evaluate_model(true_labels, predicted_labels)
+    predictor.evaluate_model(true_labels, np.array(predicted_labels))
