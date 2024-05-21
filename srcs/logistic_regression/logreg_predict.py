@@ -218,7 +218,7 @@ if __name__ == "__main__":
     base_dir = get_project_base_path()
     logreg_dir = os.path.join(base_dir, "outputs/logistic_regression")
     csv_dir = os.path.join(base_dir, "csv_files")
-    weights_file = os.path.join(logreg_dir, "weights.json")
+    weights_file = os.path.join(logreg_dir, "weight_base.json")
     csv_test_file = os.path.join(csv_dir, "dataset_test.csv")
 
     predictor = LogisticRegressionPredictor(weights_file)

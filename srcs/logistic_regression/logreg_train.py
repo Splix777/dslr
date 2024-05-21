@@ -119,7 +119,7 @@ class LogisticRegressionTrainer:
         self.__preprocess_data()
         self.__initialize_variables()
         self.__logistic_regression()
-        weights_json = os.path.join(self.output_dir, "weights.json")
+        weights_json = os.path.join(self.output_dir, "weight_base.json")
         self.__save_weights(weights_json)
 
     def __logistic_regression(self):
@@ -523,7 +523,7 @@ if __name__ == "__main__":
     )
 
     trainer = LogisticRegressionTrainer(
-        learning_rate=0.01, num_iterations=2000, epsilon=1e-5
+        learning_rate=0.01, num_iterations=100_000, epsilon=1e-8
     )
 
     base_path = get_project_base_path()
