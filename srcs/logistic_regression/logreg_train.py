@@ -1,7 +1,9 @@
 import json
 import logging
 import os
-from typing import Any
+import multiprocessing
+from typing import Any, Dict
+from rich.progress import Progress
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,10 +15,10 @@ from tqdm import tqdm
 
 class LogisticRegressionTrainer:
     def __init__(
-        self,
-        learning_rate: float = 0.001,
-        num_iterations: int = 1000,
-        epsilon: float = 1e-5,
+            self,
+            learning_rate: float = 0.001,
+            num_iterations: int = 1000,
+            epsilon: float = 1e-5,
     ):
         """
         Initialize the logistic regression trainer.
@@ -122,18 +124,26 @@ class LogisticRegressionTrainer:
         weights_json = os.path.join(self.output_dir, "weight_base.json")
         self.__save_weights(weights_json)
 
+    def gradient_descent_wrapper(self, house):
+        return self.__gradient_descent(house)
+
     def __logistic_regression(self):
         """
         Train the logistic regression model for each house.
         """
-        for house in self.target:
-            self.__gradient_descent(house)
-            self.weights[house] = {
-                "weights": self.weight_history[house][-1].tolist(),
-                "bias": self.bias_history[house][-1],
-            }
+        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+            results = pool.map(self.gradient_descent_wrapper, [house for house in self.target])
 
-    def __gradient_descent(self, house: str) -> None:
+        for result in results:
+            self.weights[result['house']] = {
+                "weights": result['weights'],
+                "bias": result['bias']
+            }
+            self.weight_history[result['house']] = result['weight_history']
+            self.bias_history[result['house']] = result['bias_history']
+            self.costs[result['house']] = result['costs']
+
+    def __gradient_descent(self, house: str) -> Dict[str, Any]:
         """
         Perform gradient descent to train the logistic regression model.
 
@@ -142,11 +152,15 @@ class LogisticRegressionTrainer:
         """
         binary_labels = (self.target_labels == house).astype(int)
         weights = np.zeros(self.features_scaled.shape[1])
+        weight_history = []
+        bias_history = []
+        costs = []
         bias = 0
-        pbar = tqdm(total=self.num_iterations)
-        pbar.set_description(f"Training {house}")
-        pbar.bar_format = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
-        logging.info(f"Training {house} logistic regression model")
+        pbar = tqdm(
+            total=self.num_iterations,
+            desc=f"Training {house} model",
+            colour="green",
+        )
 
         for _ in range(self.num_iterations):
             linear_output = self.__calculate_linear_output(weights, bias)
@@ -158,32 +172,23 @@ class LogisticRegressionTrainer:
             weights, bias = self.__update_weights(
                 weights, bias, gradient_weights, gradient_bias
             )
-            self.weight_history[house].append(weights.copy())
-            self.bias_history[house].append(bias)
-            self.costs[house].append(
-                self.__calculate_cost(binary_labels, validated_p)
-            )
+            weight_history.append(weights.copy())
+            bias_history.append(bias)
+            costs.append(self.__calculate_cost(binary_labels, validated_p))
             pbar.update(1)
 
-            if (
-                self.costs[house]
-                and len(self.costs[house]) > 1
-                and abs(self.costs[house][-1] - self.costs[house][-2])
-                < self.epsilon
-            ):
-                logging.info(
-                    f"Converged at iteration {_ + 1} with cost: "
-                    f"{self.costs[house][-1]}"
-                )
+            if len(costs) > 1 and abs(costs[-1] - costs[-2]) < self.epsilon:
                 break
 
-        logging.info(
-            f"---\n{house}\nFinal Weights: {weights}\nFinal Bias: {bias}"
-        )
         pbar.close()
+        pbar.clear()
+
+        return {'weights': weights.tolist(), 'bias': bias, 'house': house,
+                'costs': costs, 'weight_history': weight_history,
+                'bias_history': bias_history}
 
     def __calculate_linear_output(
-        self, weights: np.ndarray, bias: float
+            self, weights: np.ndarray, bias: float
     ) -> np.ndarray:
         """
         Calculate the linear output of the model.
@@ -211,7 +216,7 @@ class LogisticRegressionTrainer:
         return 1 / (1 + np.exp(-linear_output))
 
     def __ensure_valid_predictions(
-        self, predictions: np.ndarray
+            self, predictions: np.ndarray
     ) -> np.ndarray:
         """
         Ensure predictions are within valid range to prevent numerical instability.
@@ -225,9 +230,9 @@ class LogisticRegressionTrainer:
         return np.clip(predictions, self.epsilon, 1 - self.epsilon)
 
     def __calculate_gradient(
-        self,
-        predictions: np.ndarray,
-        target: np.ndarray,
+            self,
+            predictions: np.ndarray,
+            target: np.ndarray,
     ) -> tuple[float | Any, Any]:
         """
         Calculate the gradient of the cost function.
@@ -245,11 +250,11 @@ class LogisticRegressionTrainer:
         return gradient_weights, gradient_bias
 
     def __update_weights(
-        self,
-        weights: np.ndarray,
-        bias: float,
-        gradient_weights: np.ndarray,
-        gradient_bias: float,
+            self,
+            weights: np.ndarray,
+            bias: float,
+            gradient_weights: np.ndarray,
+            gradient_bias: float,
     ) -> tuple[np.ndarray, float]:
         """
         Update the weights using gradient descent.
@@ -523,7 +528,7 @@ if __name__ == "__main__":
     )
 
     trainer = LogisticRegressionTrainer(
-        learning_rate=0.01, num_iterations=100_000, epsilon=1e-8
+        learning_rate=0.001, num_iterations=100_000, epsilon=1e-8
     )
 
     base_path = get_project_base_path()

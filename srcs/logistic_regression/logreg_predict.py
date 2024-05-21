@@ -219,7 +219,7 @@ if __name__ == "__main__":
     logreg_dir = os.path.join(base_dir, "outputs/logistic_regression")
     csv_dir = os.path.join(base_dir, "csv_files")
     weights_file = os.path.join(logreg_dir, "weight_base.json")
-    csv_test_file = os.path.join(csv_dir, "dataset_test.csv")
+    csv_test_file = os.path.join(csv_dir, "dataset_test2.csv")
 
     predictor = LogisticRegressionPredictor(weights_file)
     test_data = predictor.load_data(csv_test_file)
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     results_csv = os.path.join(logreg_dir, "dataset_truth.csv")
     test_data.to_csv(results_csv, index=False)
 
-    true_csv_file = os.path.join(csv_dir, "sample_truth.csv")
+    true_csv_file = os.path.join(csv_dir, "dataset_train.csv")
 
     true_csv = pd.read_csv(true_csv_file)
     true_labels = true_csv["Hogwarts House"].values
