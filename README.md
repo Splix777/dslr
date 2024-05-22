@@ -43,6 +43,7 @@ This project introduces you to new tools in your exploration of Machine Learning
      - [V.2.3 Pair Plot](#v23-pair-plot)
    - [V.3 Logistic Regression](#v3-logistic-regression)
      - [Part 1: Training the Model](#script-functionality-part-1-training)
+     - [Part 2: Prediction](#script-functionality-part-2-prediction)
 
 
 
@@ -454,7 +455,8 @@ The idea of One-vs-All is to transform a multi-class problem into multiple binar
 
 #### Features (Independent Variables):** The scores of students in various courses.
   
-- In this case, the features are the courses scores (float64). Each column in your data (Defense Against the Dark Arts, Muggle Studies, and so on) represents a single feature.
+- In this case, the features are the course scores (float64). Each column in your data (Defense Against the Dark Arts, Muggle Studies, and so on) represents a single feature.
+- If we want to use a non-numeric feature (e.g., Best Hand) as a feature, we need to encode it into a numeric format (e.g., one-hot encoding, turning it into a binary feature).
 - The OvA model will use the values in these columns (each student's score in each course) to learn how to classify students into different Hogwarts houses.
 - Scaling: It's essential to scale the features to ensure consistent scaling across different courses. This step helps the model learn effectively without being biased by the scale of the features.
 - We used fit_transform() to scale the features in the training dataset.
@@ -474,11 +476,13 @@ The idea of One-vs-All is to transform a multi-class problem into multiple binar
 
 - **Objective:** Train a logistic regression model to predict the Hogwarts house of a student based on their scores in various courses.
 
-
-- **How It Works:**
+**How It Works:**
   1. Load the training dataset from a CSV file.
-  2. Split the dataset into features (course scores) and targets (Hogwarts houses).
+  2. Split the dataset into features (course scores and best hand) and targets (Hogwarts houses).
   3. Using a scaler, normalize the features to ensure consistent scaling.
+     * The scaler is fitted on the training data to learn the scaling parameters (mean and standard deviation).
+     * We save the scaler to a pickle file to use it for scaling the test data.
+     * This allows us to use the same scaling parameters for the test data, ensuring consistency between the training and test datasets.
   4. Train a logistic regression model using the OvA strategy to predict the student's house.
      1. For each house (Gryffindor, Hufflepuff, Ravenclaw, Slytherin):
         1. Create a binary label variable for the specific house (1 if the student belongs to that house, zero otherwise).
@@ -503,9 +507,165 @@ The idea of One-vs-All is to transform a multi-class problem into multiple binar
               * The learning rate controls the step size of the weight updates, influencing the convergence speed and stability of the model.
            7. Repeat the Gradient Descent Steps: Iterate over the training data multiple times (epochs) to update the weights and bias iteratively.
      2. Store the learned weights and bias for each house in a dictionary.
-        * `{"Ravenclaw": [-0.0009868341294897878, 0.06962188652678399, -0.5579166563484348, 0.39875190335458915, 0.5628056489665395, 0.35134153700367265, 0.9846571492335171, 0.7965639194620214, 0.06198095424575081, 0.08187381240200624, 0.04589124210735973, 0.018121847976973252, 0.8481914997775947, 0.033243022124068544]}`
-        * Each house has a corresponding list of weights for each feature selected.
-        * The weights represent the importance of each feature in predicting the student's house.
+
+---
+
+### Result Analysis
+
+**Example Output:** 
+- **Ravenclaw:** 
+  - **Data is Stored in a Dictionary:**
+    - **Weights:** [0.05479215630440222, 0.2225438902957139, -0.7149653317821257, 0.5381571269856756, 0.716376738408983, 0.33997753735547703, 1.1720034174151532, 0.9738511099375776, 0.05981978776244727, 0.026134597547035874, -0.00943230755472662, 0.04419218591678855, 1.0245111937966929, 0.06846735584568435]
+    - **Bias:** -0.0001
+  
+
+**Ravenclaw:**
+- **Best Hand**: 0.05479215630440222
+- **Arithmancy**: 0.2225438902957139
+- **Astronomy**: -0.7149653317821257
+- **Herbology**: 0.5381571269856756
+- **Defense Against the Dark Arts**: 0.716376738408983
+- **Divination**: 0.33997753735547703
+- **Muggle Studies**: 1.1720034174151532
+- **Ancient Runes**: 0.9738511099375776
+- **History of Magic**: 0.05981978776244727
+- **Transfiguration**: 0.026134597547035874
+- **Potions**: -0.00943230755472662
+- **Care of Magical Creatures**: 0.04419218591678855
+- **Charms**: 1.0245111937966929
+- **Flying**: 0.06846735584568435
+
+Looking at the weights and bias for Ravenclaw, we can see that the features with higher weights have a more significant impact on the prediction. For example, Muggle Studies, Charms, and Defense Against the Dark Arts have higher weights, indicating that they strongly influence the prediction of the Ravenclaw house.
+
+---
+
+### Script Functionality Part 2: Prediction
+
+#### `logreg_predict.py`
+
+- **Objective:** Predict the Hogwarts house of a student based on their scores in various courses using the trained logistic regression model.
+
+**How It Works:**
+  1. Load the test dataset from a CSV file.
+  2. Split the dataset into features (course scores and best hand).
+  3. Normalize the features using the same scaler used for training.
+     * We load the scaler from the pickle file to ensure consistent scaling between the training and test datasets.
+     * We only transform the features using the scaler without fitting it to the test data.
+  4. Predict the probability of the student belonging to each house using the trained logistic regression model.
+     1. For each house (Gryffindor, Hufflepuff, Ravenclaw, Slytherin):
+        1. Calculate the linear output using the learned weights and bias.
+        2. Apply the sigmoid function to get the predicted probability.
+        3. Store the predicted probability for each house.
+  5. Using np.argmax(), determine the house with the highest predicted probability as the student's predicted house.
+  6. Assign the student to the predicted results.
+
+---
+
+### Result Analysis
+
+**Example Output:**
+Let's take a look at a student with the following scores:
+
+![img_1.png](images/rico_eg.png)
+
+- **Student:** Rico Sargent
+    - **Predicted Probabilities:**
+        - **Ravenclaw:** 0.03059299
+        - **Slytherin:** 0.01406074
+        - **Gryffindor:** 0.08459108
+        - **Hufflepuff:** 0.9847089
+    - **Predicted House:** Hufflepuff
+
+**Rico Sargent** is predicted to be in **Hufflepuff** based on the logistic regression model's predictions. The model assigns probabilities to each house based on Rico's scores in various courses, with Hufflepuff having the highest probability of 0.9847089.
+
+---
+
+## Checking the Accuracy of the Model
+
+### **How do you evaluate the performance of your logistic regression model?**
+
+### ELI5
+
+- To evaluate the performance of the logistic regression model, we need to assess how well it predicts the Hogwarts house of students based on their course scores.
+- We can use metrics like accuracy, precision, recall, and F1 score to measure the model's performance.
+- Accuracy: The percentage of correct predictions made by the model.
+- Precision: The proportion of true positive predictions among all positive predictions made by the model.
+- Recall: The proportion of true positive predictions among all actual positive instances in the dataset.
+- F1 Score: The harmonic mean of precision and recall, providing a balanced measure of the model's performance.
+- Confusion Matrix: A table that summarizes the model's predictions and actual outcomes, showing true positives, true negatives, false positives, and false negatives.
+
+Here is how our model compares to a sample model:
+
+- **Accuracy:** 0.99
+- **Precision:** 0.9901010900140648
+- **Recall:** 0.99
+- **F1 Score:** 0.9899382349985965
+- **Confusion Matrix:**
+  - **Ravenclaw:** [78, 0, 0, 0]
+  - **Slytherin:** [0, 142, 0, 0]
+  - **Gryffindor:** [0, 1, 113, 0]
+  - **Hufflepuff:** [1, 1, 1, 63]
+
+---
+
+## Conclusion
+
+- **Data Exploration and Visualization:** You've learned how to analyze and visualize datasets, gaining insights into the distribution of scores and relationships between features.
+- **Logistic Regression for Classification:** You've trained a logistic regression model using the OvA strategy to predict the Hogwarts house of students based on their course scores.
+
+---
+
+## References
+
+- [Logistic Regression for Machine Learning](https://machinelearningmastery.com/logistic-regression-for-machine-learning/)
+- [Logistic Regression in Python](https://realpython.com/logistic-regression-python/)
+- [Logistic Regression from Scratch](https://towardsdatascience.com/logistic-regression-from-scratch-69db4f587e17)
+- [Understanding Logistic Regression](https://towardsdatascience.com/understanding-logistic-regression-9b02c2aec102)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

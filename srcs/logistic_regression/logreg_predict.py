@@ -1,4 +1,5 @@
-from typing import List, Any
+import pickle
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -60,13 +61,27 @@ class LogisticRegressionPredictor:
         pd.DataFrame: Loaded dataset.
         """
         try:
-            data = pd.read_csv(file_path)
-            return data
+            return pd.read_csv(file_path)
         except FileNotFoundError as e:
             logging.error(f"File not found: {file_path}")
             raise e
         except Exception as e:
             logging.error(f"Error loading data: {str(e)}")
+            raise e
+
+    def __load_scaler(self, file_path: str) -> None:
+        """
+        Load the scaler object from a Pickle file.
+
+        Parameters:
+        file_path (str): Path to the Pickle file.
+        """
+        try:
+            with open(file_path, "rb") as f:
+                self.scaler = pickle.load(f)
+            logging.info(f"Scaler loaded from {file_path}")
+        except FileNotFoundError as e:
+            logging.error(f"File not found: {file_path}")
             raise e
 
     def preprocess_data(self, data: pd.DataFrame) -> None:
@@ -83,17 +98,17 @@ class LogisticRegressionPredictor:
             self.features = data.select_dtypes(
                 include=["float64"]
             ).columns.tolist()
-
-            self.features.remove("Hogwarts House")
-
             data[self.features] = data[self.features].apply(
                 lambda col: col.fillna(col.mean())
             )
+            self.features.remove("Hogwarts House")
 
-            self.scaler = StandardScaler()
-            self.features_scaled = self.scaler.fit_transform(
-                data[self.features]
+            pickle_file = os.path.join(
+                get_project_base_path(),
+                "outputs/logistic_regression/scaler.pkl",
             )
+            self.__load_scaler(pickle_file)
+            self.features_scaled = self.scaler.transform(data[self.features])
         except Exception as e:
             logging.error(f"Error preprocessing data: {str(e)}")
             raise e
@@ -131,11 +146,15 @@ class LogisticRegressionPredictor:
             bias = self.weights[house]["bias"]
             linear_output = self.calculate_linear_output(weights, bias)
             predictions[house] = self.sigmoid_activation(linear_output)
+            logging.info(f"Predictions for {house}: {predictions[house]}")
 
         predicted_classes = np.argmax(
             np.array(list(predictions.values())), axis=0
         )
+        logging.info(f"Houses: {self.houses}")
+        logging.info(f"Predicted classes: {predicted_classes}")
         predicted_houses = [self.houses[idx] for idx in predicted_classes]
+        logging.info(f"Predicted houses: {predicted_houses}")
         self.restore_modified_features(data)
         return predicted_houses
 
@@ -165,8 +184,11 @@ class LogisticRegressionPredictor:
         """
         return 1 / (1 + np.exp(-linear_output))
 
+    @staticmethod
     def evaluate_model(
-        self, true_labels: np.ndarray, predicted_labels: np.ndarray, output_file: str
+        true_labels: np.ndarray,
+        predicted_labels: np.ndarray,
+        output_file: str,
     ) -> None:
         """
         Evaluate the model's performance using various metrics.
@@ -202,14 +224,12 @@ class LogisticRegressionPredictor:
 def get_project_base_path() -> str:
     """Get the base path of the project."""
     current_file = os.path.abspath(__file__)
-    root_path = os.path.abspath(os.path.join(current_file, "..", "..", ".."))
-    return root_path
+    return os.path.abspath(os.path.join(current_file, "..", "..", ".."))
 
 
 if __name__ == "__main__":
-    if os.path.exists("logs/prediction.log"):
-        os.remove("logs/prediction.log")
-
+    if os.path.exists("prediction.log"):
+        os.remove("prediction.log")
     logging.basicConfig(
         filename="logs/prediction.log",
         level=logging.INFO,
@@ -219,7 +239,7 @@ if __name__ == "__main__":
     logreg_dir = os.path.join(base_dir, "outputs/logistic_regression")
     csv_dir = os.path.join(base_dir, "csv_files")
     weights_file = os.path.join(logreg_dir, "weight_base.json")
-    csv_test_file = os.path.join(csv_dir, "dataset_test2.csv")
+    csv_test_file = os.path.join(csv_dir, "dataset_test.csv")
 
     predictor = LogisticRegressionPredictor(weights_file)
     test_data = predictor.load_data(csv_test_file)
@@ -231,10 +251,12 @@ if __name__ == "__main__":
     results_csv = os.path.join(logreg_dir, "dataset_truth.csv")
     test_data.to_csv(results_csv, index=False)
 
-    true_csv_file = os.path.join(csv_dir, "dataset_train.csv")
+    true_csv_file = os.path.join(csv_dir, "sample_truth.csv")
 
     true_csv = pd.read_csv(true_csv_file)
     true_labels = true_csv["Hogwarts House"].values
 
     evaluation_file = os.path.join(logreg_dir, "evaluation.txt")
-    predictor.evaluate_model(true_labels, np.array(predicted_labels), evaluation_file)
+    predictor.evaluate_model(
+        true_labels, np.array(predicted_labels), evaluation_file
+    )

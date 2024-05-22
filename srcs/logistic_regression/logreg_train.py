@@ -2,8 +2,8 @@ import json
 import logging
 import os
 import multiprocessing
+import pickle
 from typing import Any, Dict
-from rich.progress import Progress
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,10 +15,10 @@ from tqdm import tqdm
 
 class LogisticRegressionTrainer:
     def __init__(
-            self,
-            learning_rate: float = 0.001,
-            num_iterations: int = 1000,
-            epsilon: float = 1e-5,
+        self,
+        learning_rate: float = 0.001,
+        num_iterations: int = 1000,
+        epsilon: float = 1e-5,
     ):
         """
         Initialize the logistic regression trainer.
@@ -97,6 +97,9 @@ class LogisticRegressionTrainer:
             self.features_scaled = self.scaler.fit_transform(
                 self.data[self.features]
             )
+            # Save Scaler to Pickle file
+            scale_file = os.path.join(self.output_dir, "scaler.pkl")
+            self.__save_scaler(scale_file)
         except Exception as e:
             logging.error(f"Error preprocessing data: {str(e)}")
             raise e
@@ -131,17 +134,21 @@ class LogisticRegressionTrainer:
         """
         Train the logistic regression model for each house.
         """
-        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-            results = pool.map(self.gradient_descent_wrapper, [house for house in self.target])
+        with multiprocessing.Pool(
+            processes=multiprocessing.cpu_count()
+        ) as pool:
+            results = pool.map(
+                self.gradient_descent_wrapper, list(self.target)
+            )
 
         for result in results:
-            self.weights[result['house']] = {
-                "weights": result['weights'],
-                "bias": result['bias']
+            self.weights[result["house"]] = {
+                "weights": result["weights"],
+                "bias": result["bias"],
             }
-            self.weight_history[result['house']] = result['weight_history']
-            self.bias_history[result['house']] = result['bias_history']
-            self.costs[result['house']] = result['costs']
+            self.weight_history[result["house"]] = result["weight_history"]
+            self.bias_history[result["house"]] = result["bias_history"]
+            self.costs[result["house"]] = result["costs"]
 
     def __gradient_descent(self, house: str) -> Dict[str, Any]:
         """
@@ -183,12 +190,17 @@ class LogisticRegressionTrainer:
         pbar.close()
         pbar.clear()
 
-        return {'weights': weights.tolist(), 'bias': bias, 'house': house,
-                'costs': costs, 'weight_history': weight_history,
-                'bias_history': bias_history}
+        return {
+            "weights": weights.tolist(),
+            "bias": bias,
+            "house": house,
+            "costs": costs,
+            "weight_history": weight_history,
+            "bias_history": bias_history,
+        }
 
     def __calculate_linear_output(
-            self, weights: np.ndarray, bias: float
+        self, weights: np.ndarray, bias: float
     ) -> np.ndarray:
         """
         Calculate the linear output of the model.
@@ -216,7 +228,7 @@ class LogisticRegressionTrainer:
         return 1 / (1 + np.exp(-linear_output))
 
     def __ensure_valid_predictions(
-            self, predictions: np.ndarray
+        self, predictions: np.ndarray
     ) -> np.ndarray:
         """
         Ensure predictions are within valid range to prevent numerical instability.
@@ -230,9 +242,9 @@ class LogisticRegressionTrainer:
         return np.clip(predictions, self.epsilon, 1 - self.epsilon)
 
     def __calculate_gradient(
-            self,
-            predictions: np.ndarray,
-            target: np.ndarray,
+        self,
+        predictions: np.ndarray,
+        target: np.ndarray,
     ) -> tuple[float | Any, Any]:
         """
         Calculate the gradient of the cost function.
@@ -250,11 +262,11 @@ class LogisticRegressionTrainer:
         return gradient_weights, gradient_bias
 
     def __update_weights(
-            self,
-            weights: np.ndarray,
-            bias: float,
-            gradient_weights: np.ndarray,
-            gradient_bias: float,
+        self,
+        weights: np.ndarray,
+        bias: float,
+        gradient_weights: np.ndarray,
+        gradient_bias: float,
     ) -> tuple[np.ndarray, float]:
         """
         Update the weights using gradient descent.
@@ -304,6 +316,23 @@ class LogisticRegressionTrainer:
                 logging.info(f"Weights saved to {file_path}")
         except Exception as e:
             logging.error(f"Error saving weights: {str(e)}")
+            raise e
+
+    def __save_scaler(self, file_path: str) -> None:
+        """
+        Save the scaler to a Pickle file.
+
+        Parameters:
+        file_path (str): Path to the Pickle file.
+        """
+        try:
+            if not os.path.exists(file_path):
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, "wb") as f:
+                pickle.dump(self.scaler, f)
+                logging.info(f"Scaler saved to {file_path}")
+        except Exception as e:
+            logging.error(f"Error saving scaler: {str(e)}")
             raise e
 
     def __reg_plot(self) -> None:
@@ -422,7 +451,8 @@ class LogisticRegressionTrainer:
         plt.title("Cost Function Value over Iterations")
         plt.legend()
         plt.grid(True)
-        plt.savefig("cost_function.png")
+        save_name = os.path.join(self.output_dir, "cost_function.png")
+        plt.savefig(save_name)
         plt.show()
 
     def __plot_heatmap(self) -> None:
@@ -516,19 +546,18 @@ class LogisticRegressionTrainer:
 def get_project_base_path() -> str:
     """Get the base path of the project."""
     current_file = os.path.abspath(__file__)
-    root_path = os.path.abspath(os.path.join(current_file, "..", "..", ".."))
-    return root_path
+    return os.path.abspath(os.path.join(current_file, "..", "..", ".."))
 
 
 if __name__ == "__main__":
-    if os.path.exists("logs/training.log"):
-        os.remove("logs/training.log")
+    if os.path.exists("training.log"):
+        os.remove("training.log")
     logging.basicConfig(
         filename="logs/training.log", level=logging.INFO, format="%(message)s"
     )
 
     trainer = LogisticRegressionTrainer(
-        learning_rate=0.001, num_iterations=100_000, epsilon=1e-8
+        learning_rate=0.01, num_iterations=2_000, epsilon=1e-5
     )
 
     base_path = get_project_base_path()
