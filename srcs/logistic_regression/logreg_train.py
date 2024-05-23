@@ -190,11 +190,11 @@ class LogisticRegressionTrainer:
             pbar.update(1)
 
             if len(costs) > 1 and abs(costs[-1] - costs[-2]) < self.epsilon:
+                logging.info(f"Training complete for {house} at iteration {_}")
                 break
 
         pbar.set_description(f"Training model for {house}", refresh=True)
         pbar.close()
-        pbar.clear()
 
         return {
             "weights": weights.tolist(),
@@ -445,21 +445,28 @@ class LogisticRegressionTrainer:
         pbar.close()
 
     def __plot_cost_progress(self) -> None:
-        plt.figure(figsize=(10, 6))
-        for house in self.target:
-            plt.plot(
+        fig, axes = plt.subplots(
+            len(self.target),
+            1,
+            figsize=(20, 40),
+        )
+        plt.subplots_adjust(hspace=0.5)
+        fig.suptitle("Cost Function Progress for Each House", fontsize=20)
+
+        for i, house in enumerate(self.target):
+            axes[i].plot(
                 range(len(self.costs[house])),
                 self.costs[house],
                 label=f"{house} Cost",
             )
-        plt.xlabel("Iteration")
-        plt.ylabel("Cost")
-        plt.title("Cost Function Value over Iterations")
-        plt.legend()
-        plt.grid(True)
-        save_name = os.path.join(self.output_dir, "cost_function.png")
+            axes[i].set_title(f"{house} Cost Progress")
+            axes[i].set_xlabel("Iteration")
+            axes[i].set_ylabel("Cost")
+            axes[i].legend()
+            axes[i].grid(True)
+
+        save_name = os.path.join(self.output_dir, "cost_progress.png")
         plt.savefig(save_name)
-        plt.show()
 
     def __plot_heatmap(self) -> None:
         fig, axes = plt.subplots(
