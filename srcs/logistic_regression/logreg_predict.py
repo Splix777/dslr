@@ -231,7 +231,7 @@ if __name__ == "__main__":
     if os.path.exists("prediction.log"):
         os.remove("prediction.log")
     logging.basicConfig(
-        filename="logs/prediction.log",
+        filename="prediction.log",
         level=logging.INFO,
         format="%(message)s",
     )

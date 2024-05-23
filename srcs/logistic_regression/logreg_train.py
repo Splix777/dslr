@@ -127,19 +127,24 @@ class LogisticRegressionTrainer:
         weights_json = os.path.join(self.output_dir, "weight_base.json")
         self.__save_weights(weights_json)
 
-    def gradient_descent_wrapper(self, house):
+    def worker(self, house: str) -> Dict[str, Any]:
+        """
+        Wrapper function to call the gradient descent function with multiprocessing.
+
+        Parameters:
+        house (str): House to train the model for.
+
+        Returns:
+        Dict[str, Any]: Results of the gradient descent function.
+        """
         return self.__gradient_descent(house)
 
     def __logistic_regression(self):
         """
         Train the logistic regression model for each house.
         """
-        with multiprocessing.Pool(
-            processes=multiprocessing.cpu_count()
-        ) as pool:
-            results = pool.map(
-                self.gradient_descent_wrapper, list(self.target)
-            )
+        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as p:
+            results = p.map(self.worker, list(self.target))
 
         for result in results:
             self.weights[result["house"]] = {
@@ -165,7 +170,7 @@ class LogisticRegressionTrainer:
         bias = 0
         pbar = tqdm(
             total=self.num_iterations,
-            desc=f"Training {house} model",
+            desc="Training model",
             colour="green",
         )
 
@@ -187,6 +192,7 @@ class LogisticRegressionTrainer:
             if len(costs) > 1 and abs(costs[-1] - costs[-2]) < self.epsilon:
                 break
 
+        pbar.set_description(f"Training model for {house}", refresh=True)
         pbar.close()
         pbar.clear()
 
@@ -553,11 +559,11 @@ if __name__ == "__main__":
     if os.path.exists("training.log"):
         os.remove("training.log")
     logging.basicConfig(
-        filename="logs/training.log", level=logging.INFO, format="%(message)s"
+        filename="training.log", level=logging.INFO, format="%(message)s"
     )
 
     trainer = LogisticRegressionTrainer(
-        learning_rate=0.01, num_iterations=2_000, epsilon=1e-5
+        learning_rate=0.01, num_iterations=5_000, epsilon=1e-5
     )
 
     base_path = get_project_base_path()
