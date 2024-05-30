@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from pandas import DataFrame
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
@@ -52,7 +53,7 @@ class LogisticRegressionTrainer:
             f"epsilon: {epsilon}"
         )
 
-    def load_data(self, file_path: str) -> None:
+    def load_data(self, file_path: str) -> DataFrame:
         """
         Load the dataset from a CSV file.
 
@@ -65,7 +66,7 @@ class LogisticRegressionTrainer:
         try:
             self.csv_path = file_path
             self.data = pd.read_csv(file_path)
-            logging.info(f"Data loaded from {file_path}")
+            return self.data
         except FileNotFoundError as e:
             logging.error(f"File not found: {file_path}")
             raise e
@@ -116,16 +117,17 @@ class LogisticRegressionTrainer:
         logging.info(f"Target labels: {self.target}")
         logging.info(f"Features: {self.features}")
 
-    def train_one_vs_all(self) -> None:
+    def train_one_vs_all(self) -> list[Dict[str, Any]]:
         """
         Train the logistic regression model for each house.
         """
         logging.info("Training one vs all logistic regression model")
         self.__preprocess_data()
         self.__initialize_variables()
-        self.__logistic_regression()
+        results = self.__logistic_regression()
         weights_json = os.path.join(self.output_dir, "weight_base.json")
         self.__save_weights(weights_json)
+        return results
 
     def worker(self, house: str) -> Dict[str, Any]:
         """
@@ -139,7 +141,7 @@ class LogisticRegressionTrainer:
         """
         return self.__gradient_descent(house)
 
-    def __logistic_regression(self):
+    def __logistic_regression(self) -> list[Dict[str, Any]]:
         """
         Train the logistic regression model for each house.
         """
@@ -154,6 +156,8 @@ class LogisticRegressionTrainer:
             self.weight_history[result["house"]] = result["weight_history"]
             self.bias_history[result["house"]] = result["bias_history"]
             self.costs[result["house"]] = result["costs"]
+
+        return results
 
     def __gradient_descent(self, house: str) -> Dict[str, Any]:
         """
@@ -188,7 +192,6 @@ class LogisticRegressionTrainer:
             bias_history.append(bias)
             costs.append(self.__calculate_cost(binary_labels, validated_p))
             pbar.update(1)
-
             if len(costs) > 1 and abs(costs[-1] - costs[-2]) < self.epsilon:
                 logging.info(f"Training complete for {house} at iteration {_}")
                 break
@@ -570,7 +573,7 @@ if __name__ == "__main__":
     )
 
     trainer = LogisticRegressionTrainer(
-        learning_rate=0.01, num_iterations=5_000, epsilon=1e-5
+        learning_rate=0.01, num_iterations=2_000, epsilon=1e-5
     )
 
     base_path = get_project_base_path()
