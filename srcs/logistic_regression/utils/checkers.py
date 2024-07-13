@@ -15,6 +15,8 @@ def check_path_mode(args: argparse.Namespace) -> tuple[str, str]:
         raise FileNotFoundError(f"File not found: {args.csv_path}")
     if not args.csv_path.endswith(".csv"):
         raise ValueError("Invalid file type. Use a CSV file.")
+    if not os.access(args.csv_path, os.R_OK):
+        raise PermissionError("No Read Permissions")
 
     if args.mode not in ["train", "predict"]:
         raise ValueError("Invalid mode. Use either 'train' or 'predict'.")
@@ -35,6 +37,8 @@ def check_model_path(response: str) -> str:
         raise FileNotFoundError(f"File not found: {response}")
     if not response.endswith(".pkl"):
         raise ValueError("Invalid file type. Use a pickle file.")
+    if not os.access(response, os.R_OK):
+        raise PermissionError("No Read Permissions")
 
     return response
 
