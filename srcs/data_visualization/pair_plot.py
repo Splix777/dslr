@@ -137,7 +137,8 @@ def pair_plot_hist(
     Args:
         ax (plt.Axes): Axes object for plotting.
         x (pd.Series): Data to plot histograms for.
-        house_labels (pd.Series): Labels indicating the house for each data point.
+        house_labels (pd.Series): Labels indicating
+            the house for each data point.
 
     Returns:
         None
@@ -163,7 +164,8 @@ def pair_plot_scatter(
         ax (plt.Axes): Axes object for plotting.
         x (pd.Series): Data for x-axis.
         y (pd.Series): Data for y-axis.
-        house_labels (pd.Series): Labels indicating the house for each data point.
+        house_labels (pd.Series): Labels indicating
+            the house for each data point.
 
     Returns:
         None

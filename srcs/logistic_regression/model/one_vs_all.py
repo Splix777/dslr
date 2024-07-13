@@ -1,3 +1,4 @@
+import os
 import pickle
 
 import numpy as np
@@ -6,6 +7,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from srcs.logistic_regression.model.model import Model
+from srcs.logistic_regression.utils.plotter import Plotter
 from srcs.logistic_regression.utils.decorators import error_handler
 
 
@@ -15,6 +17,7 @@ class OneVsAll:
         if model_path := kwargs.get("model_path", None):
             self.model = self.load_model(model_path)
         self.save_path = kwargs.get("save_path", None)
+        self.plot = kwargs.get("plot", False)
 
     @staticmethod
     @error_handler(handle_exceptions=(FileNotFoundError, PermissionError))
@@ -26,6 +29,7 @@ class OneVsAll:
         if self.save_path is None:
             raise ValueError("No save path provided")
 
+        os.makedirs(self.save_path, exist_ok=True)
         file = f"{self.save_path}/model.pkl"
         pickle.dump(model, open(file, "wb"))
 
@@ -37,10 +41,9 @@ class OneVsAll:
     def train_model(self):
         X_train, X_test, y_train, y_test = self._process_train_data(self.data)
 
-        houses = self.data["Hogwarts House"].unique()
         self.model = {}
         evals = {}
-        for house in houses:
+        for house in self.data["Hogwarts House"].unique():
             y_train_house = np.where(y_train == house, 1, 0)
             y_test_house = np.where(y_test == house, 1, 0)
             sub_model = Model(
@@ -55,12 +58,14 @@ class OneVsAll:
             self.model[house] = sub_model
 
         self.save_model(self.model)
+        if self.plot:
+            self.plot_data()
+
         return evals
 
     def predict(self):
         if self.model is None:
             raise ValueError("Model not trained yet")
-        print(self.model)
         X = self._process_predict_data(self.data)
         pred = {house: model.predict(X) for house, model in self.model.items()}
 
@@ -95,3 +100,9 @@ class OneVsAll:
         features = data.select_dtypes(include=['float64']).columns.tolist()
         X = data[features]
         return X.apply(lambda col: col.fillna(col.mean()))
+
+    def plot_data(self):
+        plotter = Plotter(self.save_path)
+        for house, model in self.model.items():
+            plotter.plot_history(model.history, house)
+        plotter.plot_sigmoid(self.data.copy())
