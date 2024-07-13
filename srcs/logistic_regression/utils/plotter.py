@@ -1,11 +1,13 @@
 import os
 
-import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 from tqdm import tqdm
+from numpy import ndarray, where
+
+from srcs.logistic_regression.model.history import History
 
 
 class Plotter:
@@ -13,13 +15,35 @@ class Plotter:
         self.save_path = save_path
         os.makedirs(name=f"{self.save_path}/plots", exist_ok=True)
 
-    def plot_history(self, history, name):
+    def plot_history(self, history: History, name: str) -> None:
+        """
+        Plot the history of the loss, bias and weights for each model.
+
+        Args:
+            history (History): The history of the loss,
+                bias and weights for each model.
+            name (str): The name of the model.
+
+        Returns:
+            None
+        """
         self.plot(history.loss_history, name, " Loss")
         self.plot(history.bias_history, name, " Bias")
         self.plot(history.weights_history, name, " Weights")
 
-    def plot(self, history, name, title):
-        plt.plot(range(len(history)), history)
+    def plot(self, hist: list[float] | list[ndarray], name: str, title: str):
+        """
+        Plot the history of the loss, bias and weights for each model.
+
+        Args:
+            hist (list[float] | list[ndarray]): The history to plot.
+            name (str): The name of the model.
+            title (str): The title of the plot.
+
+        Returns:
+            None
+        """
+        plt.plot(range(len(hist)), hist)
         plt.title(f"{name}{title}")
         plt.xlabel("Iteration")
         plt.ylabel("Value")
@@ -30,6 +54,12 @@ class Plotter:
     def plot_sigmoid(self, data: pd.DataFrame):
         """
         Plot the sigmoid function for each model.
+
+        Args:
+            data (pd.DataFrame): The data to plot.
+
+        Returns:
+            None
         """
         houses = data["Hogwarts House"].unique()
         features = data.select_dtypes(include=['float64']).columns.tolist()
@@ -46,7 +76,7 @@ class Plotter:
         pbar.set_description("Plotting regression plots")
 
         for row, house in enumerate(houses):
-            data[house] = np.where(data["Hogwarts House"] == house, 1, 0)
+            data[house] = where(data["Hogwarts House"] == house, 1, 0)
             for col, feature in enumerate(features):
                 ax = axes[row, col] if len(houses) > 1 else axes[col]
                 sns.set(style="whitegrid")

@@ -10,6 +10,10 @@ class LogRegPredict:
         self.one_vs_all = OneVsAll(csv_path, model_path=model_path, **kwargs)
 
     def predict(self):
+        """
+        Predict the Hogwarts House of the students in the
+        provided CSV file and save the predictions in a new CSV file
+        """
         predictions = self.one_vs_all.predict()
 
         df = pd.DataFrame({

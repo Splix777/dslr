@@ -21,11 +21,29 @@ class OneVsAll:
 
     @staticmethod
     @error_handler(handle_exceptions=(FileNotFoundError, PermissionError))
-    def load_model(path: str | None):
+    def load_model(path: str | None) -> dict[str, Model]:
+        """
+        Load a model from a pickle file.
+
+        Args:
+            path (str): The path to the pickle file.
+
+        Returns:
+            dict[str, Model]: The loaded model.
+        """
         return None if path is None else pickle.load(open(path, "rb"))
 
     @error_handler(handle_exceptions=(FileNotFoundError, PermissionError))
-    def save_model(self, model: dict[str, Model]):
+    def save_model(self, model: dict[str, Model]) -> None:
+        """
+        Save a model to a pickle file.
+
+        Args:
+            model (dict[str, Model]): The model to save.
+
+        Raises:
+            ValueError: If no save path is provided.
+        """
         if self.save_path is None:
             raise ValueError("No save path provided")
 
@@ -35,10 +53,26 @@ class OneVsAll:
 
     @staticmethod
     @error_handler(handle_exceptions=(FileNotFoundError, PermissionError))
-    def load_data(csv_path: str):
+    def load_data(csv_path: str) -> pd.DataFrame:
+        """
+        Load the data from a csv file.
+
+        Args:
+            csv_path (str): The path to the csv file.
+
+        Returns:
+            pd.DataFrame: The loaded data.
+        """
         return pd.read_csv(csv_path)
 
-    def train_model(self):
+    def train_model(self) -> dict[str, dict[str, float]]:
+        """
+        Train the model on the data.
+
+        Returns:
+            dict[str, dict[str, float]]:
+                The evaluation metrics for each house.
+        """
         X_train, X_test, y_train, y_test = self._process_train_data(self.data)
 
         self.model = {}
@@ -63,7 +97,13 @@ class OneVsAll:
 
         return evals
 
-    def predict(self):
+    def predict(self) -> list[str]:
+        """
+        Make predictions on the data.
+
+        Returns:
+            list[str]: The predicted houses.
+        """
         if self.model is None:
             raise ValueError("Model not trained yet")
         X = self._process_predict_data(self.data)
@@ -74,9 +114,16 @@ class OneVsAll:
 
     @staticmethod
     @error_handler(handle_exceptions=(KeyError, ValueError, TypeError))
-    def _process_train_data(data: pd.DataFrame):
+    def _process_train_data(data: pd.DataFrame) -> tuple:
         """
         Preprocess the data before training the model.
+
+        Args:
+            data (pd.DataFrame): The data to preprocess.
+
+        Returns:
+            tuple[pd.DataFrame, pd.DataFrame, np.ndarray, np.ndarray]:
+                The training and testing data.
         """
         data["Best Hand"] = data["Best Hand"].map({'Right': 1.0, 'Left': 0.0})
         data.drop(columns=["Index"], inplace=True)
@@ -90,9 +137,15 @@ class OneVsAll:
 
     @staticmethod
     @error_handler(handle_exceptions=(KeyError, ValueError, TypeError))
-    def _process_predict_data(data: pd.DataFrame):
+    def _process_predict_data(data: pd.DataFrame) -> pd.DataFrame:
         """
         Preprocess the data before making predictions.
+
+        Args:
+            data (pd.DataFrame): The data to preprocess.
+
+        Returns:
+            pd.DataFrame: The preprocessed data.
         """
         data["Best Hand"] = data["Best Hand"].map({'Right': 1.0, 'Left': 0.0})
         data.drop(columns=["Index", "Hogwarts House"], inplace=True)
@@ -101,7 +154,10 @@ class OneVsAll:
         X = data[features]
         return X.apply(lambda col: col.fillna(col.mean()))
 
-    def plot_data(self):
+    def plot_data(self) -> None:
+        """
+        Plot the data.
+        """
         plotter = Plotter(self.save_path)
         for house, model in self.model.items():
             plotter.plot_history(model.history, house)
