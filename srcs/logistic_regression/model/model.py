@@ -3,7 +3,12 @@ import pandas as pd
 from tqdm import tqdm
 
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import (
+    precision_score,
+    recall_score,
+    f1_score,
+    accuracy_score
+)
 
 from srcs.logistic_regression.model.history import History
 
@@ -160,12 +165,12 @@ class Model:
         gradient_bias = np.mean(y_pred - y)
         return gradient_weights, gradient_bias
 
-    def predict(self, X: pd.DataFrame) -> np.ndarray:
+    def predict(self, X: pd.DataFrame | np.ndarray) -> np.ndarray:
         """
         Make predictions on the given dataset.
 
         Args:
-            X (pd.DataFrame): Input features.
+            X (pd.DataFrame | np.ndarray): Input features.
 
         Returns:
             np.ndarray: The predicted target values.
@@ -194,25 +199,16 @@ class Model:
         y_pred_class = np.where(y_pred >= 0.5, 1, 0)
 
         # Calculate evaluation metrics
-        mae = mean_absolute_error(y, y_pred)
-        mse = mean_squared_error(y, y_pred)
-        rmse = np.sqrt(mse)
-        r2 = r2_score(y, y_pred)
-        precision = np.sum(y_pred_class & y) / np.sum(y_pred_class)
-        accuracy = np.mean(y_pred_class == y)
-        recall = np.sum(y_pred_class & y) / np.sum(y)
-        f1 = 2 * (precision * recall) / (precision + recall)
+        accuracy = accuracy_score(y, y_pred_class)
+        precision = precision_score(y, y_pred_class)
+        recall = recall_score(y, y_pred_class)
+        f1 = f1_score(y, y_pred_class)
 
         return {
             "accuracy": accuracy * 100,
-            "mae": mae,
-            "mse": mse,
-            "rmse": rmse,
-            "r2": r2,
             "precision": precision,
             "recall": recall,
             "f1": f1
-
         }
 
     def _train_batch(self, X: np.ndarray, y: np.ndarray) -> tuple:

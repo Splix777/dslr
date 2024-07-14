@@ -73,7 +73,9 @@ class OneVsAll:
             dict[str, dict[str, float]]:
                 The evaluation metrics for each house.
         """
-        X_train, X_test, y_train, y_test = self._process_train_data(self.data)
+        X, y = self._process_data(self.data)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42)
 
         self.model = {}
         evals = {}
@@ -97,24 +99,31 @@ class OneVsAll:
 
         return evals
 
-    def predict(self) -> list[str]:
+    def predict(self) -> tuple[list[str], int, float]:
         """
         Make predictions on the data.
 
         Returns:
             list[str]: The predicted houses.
+            int: The total number of correct predictions
+            float: The accuracy of the model
         """
         if self.model is None:
             raise ValueError("Model not trained yet")
-        X = self._process_predict_data(self.data)
+        X, y = self._process_data(self.data)
         pred = {house: model.predict(X) for house, model in self.model.items()}
 
         pred_classes = np.argmax(np.array(list(pred.values())), axis=0)
-        return [list(pred.keys())[idx] for idx in pred_classes]
+        pred_names = [list(pred.keys())[idx] for idx in pred_classes]
+
+        total_correct = np.sum(pred_names == y)
+        accuracy = total_correct / len(y)
+
+        return pred_names, total_correct, accuracy
 
     @staticmethod
     @error_handler(handle_exceptions=(KeyError, ValueError, TypeError))
-    def _process_train_data(data: pd.DataFrame) -> tuple:
+    def _process_data(data: pd.DataFrame) -> tuple:
         """
         Preprocess the data before training the model.
 
@@ -122,8 +131,7 @@ class OneVsAll:
             data (pd.DataFrame): The data to preprocess.
 
         Returns:
-            tuple[pd.DataFrame, pd.DataFrame, np.ndarray, np.ndarray]:
-                The training and testing data.
+            tuple: The preprocessed features and target.
         """
         data["Best Hand"] = data["Best Hand"].map({'Right': 1.0, 'Left': 0.0})
         data.drop(columns=["Index"], inplace=True)
@@ -133,26 +141,7 @@ class OneVsAll:
         X_filled = X.apply(lambda col: col.fillna(col.mean()))
         y = data["Hogwarts House"].values
 
-        return train_test_split(X_filled, y, test_size=0.2, random_state=42)
-
-    @staticmethod
-    @error_handler(handle_exceptions=(KeyError, ValueError, TypeError))
-    def _process_predict_data(data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Preprocess the data before making predictions.
-
-        Args:
-            data (pd.DataFrame): The data to preprocess.
-
-        Returns:
-            pd.DataFrame: The preprocessed data.
-        """
-        data["Best Hand"] = data["Best Hand"].map({'Right': 1.0, 'Left': 0.0})
-        data.drop(columns=["Index", "Hogwarts House"], inplace=True)
-
-        features = data.select_dtypes(include=['float64']).columns.tolist()
-        X = data[features]
-        return X.apply(lambda col: col.fillna(col.mean()))
+        return X_filled, y
 
     def plot_data(self) -> None:
         """
