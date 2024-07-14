@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 from sklearn.preprocessing import StandardScaler
@@ -77,7 +78,8 @@ class Model:
             tuple[np.ndarray, np.ndarray]:
                 The shuffled input features and target values.
         """
-        indices = np.random.permutation(len(X))
+        rng = np.random.default_rng()
+        indices = rng.permutation(len(X))
         return X[indices], y[indices]
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
@@ -158,12 +160,12 @@ class Model:
         gradient_bias = np.mean(y_pred - y)
         return gradient_weights, gradient_bias
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         """
         Make predictions on the given dataset.
 
         Args:
-            X (np.ndarray): Input features.
+            X (pd.DataFrame): Input features.
 
         Returns:
             np.ndarray: The predicted target values.
