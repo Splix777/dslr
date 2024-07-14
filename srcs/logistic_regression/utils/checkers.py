@@ -18,7 +18,7 @@ def check_path_mode(args: argparse.Namespace) -> tuple[str, str]:
     if not os.access(args.csv_path, os.R_OK):
         raise PermissionError("No Read Permissions")
 
-    if args.mode not in ["train", "predict"]:
+    if args.mode not in ["train", "predict", "describe"]:
         raise ValueError("Invalid mode. Use either 'train' or 'predict'.")
 
     return args.csv_path, args.mode

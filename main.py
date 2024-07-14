@@ -2,6 +2,7 @@ import argparse
 
 from srcs.logistic_regression.logreg_train import LogRegTrain
 from srcs.logistic_regression.logreg_predict import LogRegPredict
+from srcs.data_analysis.describe import describe
 from srcs.logistic_regression.utils.checkers import (
     check_path_mode,
     check_model_path,
@@ -27,7 +28,9 @@ def train_or_predict(csv_path: str, mode: str) -> None:
         print(f"Predictions saved to the same directory as {csv_path}")
 
     elif mode == "train":
-        train_model(csv_path)
+        train_model(csv_path=csv_path)
+    elif mode == "describe":
+        describe(csv_path=csv_path)
     else:
         raise ValueError("Invalid mode. Use either 'train' or 'predict'.")
 
@@ -90,7 +93,7 @@ def main():
         required=True)
     arg_parser.add_argument(
         "--mode",
-        help="train or predict",
+        help="train, predict or describe",
         type=str,
         required=True)
     args = arg_parser.parse_args()

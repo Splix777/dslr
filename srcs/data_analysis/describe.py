@@ -1,6 +1,6 @@
 import pandas as pd
 
-from statistics_class import StatisticsClass
+from srcs.data_analysis.statistics_class import StatisticsClass
 
 
 def describe_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -46,13 +46,43 @@ def describe_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return description
 
 
-if __name__ == "__main__":
-    dataframe = pd.read_csv(
-        "/home/splix/Desktop/dslr/csv_files/dataset_train.csv"
-    )
-    print(dataframe.describe())
+def print_descriptions(csv_path: str) -> None:
+    """
+    Print the description of the input CSV file.
 
-    # Save the output to a CSV file
-    description_df = describe_dataframe(dataframe)
-    print(description_df)
-    description_df.to_csv("/home/splix/Desktop/dslr/csv_files/description.csv")
+    Args:
+        csv_path (str): The path to the CSV file.
+
+    Returns:
+        None
+    """
+    dataframe = pd.read_csv(csv_path)
+    print("Dataframe description: ")
+    print(dataframe.describe())
+    print('-' * 50)
+    print("Custom description: ")
+    print(describe_dataframe(dataframe))
+
+
+def describe(csv_path: str = None) -> None:
+    """
+    Describe the input CSV file.
+
+    Args:
+        csv_path (str): The path to the CSV file.
+
+    Returns:
+        None
+    """
+    if not csv_path:
+        csv_path = input("Please indicate the path to the CSV file: ")
+    try:
+        print_descriptions(csv_path=csv_path)
+    except FileNotFoundError:
+        print("File not found. Please try again.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+if __name__ == "__main__":
+    describe()
