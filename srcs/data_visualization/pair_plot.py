@@ -240,10 +240,28 @@ def custom_pair_plot(df: pd.DataFrame) -> None:
     plt.show()
 
 
+def main(csv_path: str = None) -> None:
+    """
+    Main function for the pair plot script.
+
+    Args:
+        csv_path (str): Path to the CSV file.
+
+    Returns:
+        None
+    """
+    if not csv_path:
+        csv_path = input("Please indicate the path to the CSV file: ")
+    try:
+        dataset = pd.read_csv(csv_path)
+        create_pair_plot_seaborn(dataset)
+        create_scatter_plot_matrix_pandas(dataset)
+        custom_pair_plot(dataset)
+    except FileNotFoundError:
+        print("File not found. Please try again.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
 if __name__ == "__main__":
-    csv_path = "/home/splix/Desktop/dslr/csv_files/"
-    csv_file = "dataset_train.csv"
-    dataset = read_csv_file(csv_path + csv_file)
-    create_pair_plot_seaborn(dataset)
-    create_scatter_plot_matrix_pandas(dataset)
-    custom_pair_plot(dataset)
+    main()

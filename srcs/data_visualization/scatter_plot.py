@@ -226,11 +226,17 @@ def print_correlation_percentages(
             )
 
 
-if __name__ == "__main__":
-    csv_path = "/home/splix/Desktop/dslr/csv_files/"
-    csv_file = "dataset_train.csv"
-    dataset = read_csv_file(csv_path + csv_file)
+def make_scatter_plot(csv_path: str = None) -> None:
+    """
+    Create scatter plots for pairs of similar features in a dataset.
 
+    Args:
+        csv_path (str): The path to the CSV file.
+
+    Returns:
+        None
+    """
+    dataset = pd.read_csv(csv_path)
     correlation_threshold = 0.70
     similar_features = find_similar_features(dataset, correlation_threshold)
 
@@ -241,3 +247,27 @@ if __name__ == "__main__":
 
     plot_scatter_plots(dataset, similar_features, correlation_threshold)
     print_correlation_percentages(dataset, similar_features)
+
+
+def main(csv_path: str = None) -> None:
+    """
+    Create scatter plots for pairs of similar features in a dataset.
+
+    Args:
+        csv_path (str): The path to the CSV file.
+
+    Returns:
+        None
+    """
+    if not csv_path:
+        csv_path = input("Please indicate the path to the CSV file: ")
+    try:
+        make_scatter_plot(csv_path)
+    except FileNotFoundError:
+        print("File not found. Please try again.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+if __name__ == "__main__":
+    main()

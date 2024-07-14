@@ -115,18 +115,28 @@ def print_homogeneous_course(df: pd.DataFrame) -> None:
     )
 
 
-if __name__ == "__main__":
-    csv_path = "/home/splix/Desktop/dslr/csv_files/"
-    csv_file = "dataset_train.csv"
+def main(csv_path: str = None) -> None:
+    """
+    Plot Histograms of the courses and print the most
+    homogeneous course.
 
+    Args:
+        csv_path (str): The path to the CSV file.
+
+    Returns:
+        None
+    """
+    if not csv_path:
+        csv_path = input("Please indicate the path to the CSV file: ")
     try:
-        dataset = pd.read_csv(csv_path + csv_file)
+        dataset = pd.read_csv(csv_path)
+        plot_course_distributions(dataset)
+        print_homogeneous_course(dataset)
     except FileNotFoundError:
-        print(f"Error: File '{csv_file}' not found.")
-        exit(1)
+        print("File not found. Please try again.")
     except Exception as e:
-        print(f"An error occurred while reading the CSV file: {e}")
-        exit(1)
+        print(f"An error occurred: {e}")
 
-    plot_course_distributions(dataset)
-    print_homogeneous_course(dataset)
+
+if __name__ == "__main__":
+    main()
